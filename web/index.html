@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Crate Crush: Dock Rush — WebGL Prototype</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="wrap">
+    <canvas id="game" width="540" height="960" aria-label="Crate Crush: Dock Rush"></canvas>
+  </div>
+
+  <!-- DOM dev tooling lives outside the game canvas; never drawn mid Smash/Sort -->
+  <button id="devToggle" type="button" title="Dev / telemetry panel (~)">DEV</button>
+  <div id="devPanel" class="hidden"></div>
+
+  <!-- core -->
+  <script src="js/core/config.js"></script>
+  <script src="js/core/util.js"></script>
+  <script src="js/core/input.js"></script>
+  <script src="js/core/fx.js"></script>
+  <script src="js/core/audio.js"></script>
+  <script src="js/core/telemetry.js"></script>
+  <script src="js/core/save.js"></script>
+  <!-- data -->
+  <script src="js/data/economy.js"></script>
+  <script src="js/data/cargo.js"></script>
+  <script src="js/data/levels.js"></script>
+  <script src="js/data/assets.js"></script>
+  <!-- ui -->
+  <script src="js/ui/widgets.js"></script>
+  <!-- screens -->
+  <script src="js/screens/boot.js"></script>
+  <script src="js/screens/hub.js"></script>
+  <script src="js/screens/dockbrief.js"></script>
+  <script src="js/screens/phase_smash.js"></script>
+  <script src="js/screens/phase_sort.js"></script>
+  <script src="js/screens/phase_truck.js"></script>
+  <script src="js/screens/overlay_revive.js"></script>
+  <script src="js/screens/overlay_results.js"></script>
+  <script src="js/screens/dockrun.js"></script>
+  <script src="js/screens/upgrade.js"></script>
+  <!-- dev -->
+  <script src="js/dev/sheet.js"></script>
+  <script src="js/dev/bot.js"></script>
+  <script src="js/dev/devpanel.js"></script>
+  <!-- boot -->
+  <script src="js/main.js"></script>
+</body>
+</html>
