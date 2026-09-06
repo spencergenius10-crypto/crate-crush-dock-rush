@@ -1,7 +1,7 @@
 {
-  "name": "Crate Crush: Dock Rush",
-  "short_name": "Dock Rush",
-  "description": "Smash crates, sort cargo, fill the truck. Free browser game.",
+  "name": "Crate Crush — Mode: Dock Rush",
+  "short_name": "Crate Crush",
+  "description": "Crate Crush — Mode: Dock Rush. Smash crates, sort cargo, fill the truck. Free browser game.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

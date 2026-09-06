@@ -74,7 +74,7 @@ CC.OverlayResults = class {
     this.g.audio.chime(0); // Kade audio — share button
     const ch = this.payload();
     const url = CC.Share.challengeURL(ch);
-    const payload = { title: 'Crate Crush: Dock Rush', text: CC.Share.text(kind, ch), url };
+    const payload = { title: CC.BRAND.full, text: CC.Share.text(kind, ch), url };
     const file = kind === 'score' ? this.shareFile : null;
     CC.Share.deliver(payload, file).then((method) => {
       this.sharing = false;
@@ -100,6 +100,7 @@ CC.OverlayResults = class {
     const k = CC.U.easeOutBack(Math.min(1, this.t / 0.4));
     ctx.save(); ctx.translate(W / 2, 520); ctx.scale(k, k); ctx.translate(-W / 2, -520);
     CC.UI.panel(ctx, 40, 230, 460, 550, { stroke: this.cleared ? C.Safe : C.Fail });
+    CC.UI.modeChip(ctx, W / 2, 230, { size: 10, label: CC.BRAND.game.toUpperCase() + ' · ' + CC.BRAND.chip });
     CC.U.text(ctx, this.cleared ? 'DOCK CLEAR' : 'DOCK FAILED', W / 2, 280, { size: 44, weight: 900, color: this.cleared ? C.Warn : C.Fail, stroke: C.Outline, strokeWidth: 8 });
     CC.U.text(ctx, `${run.lv.name} · attempt ${run.attempt_n}${this.cleared ? '' : ' · ' + (run.failReason || 'fail')}`, W / 2, 316, { size: 14, weight: 700, color: C.Text_Secondary });
 
@@ -113,11 +114,19 @@ CC.OverlayResults = class {
     // haul breakdown
     const fever = s.feverPeak ? `×${CC.CONFIG.FEVER.mults[s.feverPeak]} peak` : '—';
     const golden = s.golden ? ` · ${s.golden} golden` : '';
+    // shift report: round events survived + jackpots cracked + behaviour outcomes (skill read for the share loop)
+    const shift = [];
+    if (s.events) shift.push(`${s.events} event${s.events > 1 ? 's' : ''}`);
+    if (s.jackpots) shift.push(`${s.jackpots} jackpot`);
+    if (s.steelHeaved) shift.push(`${s.steelHeaved} steel`);
+    if (s.magnetSnaps) shift.push(`${s.magnetSnaps} snap`);
+    if (s.glassShattered) shift.push(`${s.glassShattered} shattered`);
+    const shiftStr = shift.length ? shift.join(' · ') : '—';
     const rows = this.cleared
-      ? [['COINS', `+${CC.U.fmtCoins(this.coins)}${s.doubled ? ' ×2' : ''}`], ['BASE + STREAK', `${run.lv.baseCoins} +${this.bonusPct}%`], ['RUN SCORE · FEVER', `${s.score}${golden} · ${fever}`], ['BEST STREAK', `${s.bestStreak}`], ['CRATES', `${s.smashed}`], ['MISSES', `${s.misses}`], ['TIME', `${Math.round(run.elapsed)}s`]]
-      : [['COINS', '0 (progress discarded)'], ['RUN SCORE · FEVER', `${s.score}${golden} · ${fever}`], ['CRATES', `${s.smashed}/${run.lv.crates}`], ['SORTED', `${s.sorted}/${run.cargoTotal}`], ['MISSES', `${s.misses}`], ['BEST STREAK', `${s.bestStreak}`], ['TIME', `${Math.round(run.elapsed)}s`]];
+      ? [['COINS', `+${CC.U.fmtCoins(this.coins)}${s.doubled ? ' ×2' : ''}`], ['BASE + STREAK', `${run.lv.baseCoins} +${this.bonusPct}%`], ['RUN SCORE · FEVER', `${s.score}${golden} · ${fever}`], ['SHIFT REPORT', shiftStr], ['BEST STREAK', `${s.bestStreak}`], ['CRATES', `${s.smashed}`], ['MISSES', `${s.misses}`], ['TIME', `${Math.round(run.elapsed)}s`]]
+      : [['COINS', '0 (progress discarded)'], ['RUN SCORE · FEVER', `${s.score}${golden} · ${fever}`], ['SHIFT REPORT', shiftStr], ['CRATES', `${s.smashed}/${run.lv.crates}`], ['SORTED', `${s.sorted}/${run.cargoTotal}`], ['MISSES', `${s.misses}`], ['BEST STREAK', `${s.bestStreak}`], ['TIME', `${Math.round(run.elapsed)}s`]];
     rows.forEach(([a, b], i) => {
-      const y = 458 + i * 21;
+      const y = 456 + i * 19;
       CC.U.text(ctx, a, 80, y, { size: 13, weight: 800, align: 'left', color: C.Text_Secondary });
       CC.U.text(ctx, b, 460, y, { size: 15, weight: 900, align: 'right', color: i === 0 ? C.Warn : a.startsWith('RUN SCORE') ? '#ffd65a' : C.Text_Primary });
     });

@@ -75,6 +75,7 @@ CC.Telemetry = class {
       app_ver: CC.CONFIG.APP_VER,
       platform: CC.CONFIG.PLATFORM,
       platform_detail: CC.CONFIG.PLATFORM_DETAIL,
+      mode: CC.BRAND.modeId, // Crate Crush Mode this event came from (additive; schema common fields unchanged)
       user_id: this.identity.user_id,
       session_id: this.session_id,
       install_ts: this.identity.install_ts,
@@ -136,6 +137,8 @@ CC.Telemetry = class {
   // kind: score | challenge · method: web_share | clipboard | prompt | failed
   share(p) { return this.emit('share', p); }
   challengeOpen(p) { return this.emit('challenge_open', p); }
+  // round events (additive): event_id rush_hour | inspection_shift · action start | end · plus level_id, duration_s, pieces_left
+  roundEvent(p) { return this.emit('round_event', p); }
 
   // ---- acceptance helpers ----
   counts(sessionOnly) {

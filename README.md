@@ -1,6 +1,13 @@
-# Crate Crush: Dock Rush
+# Crate Crush — Mode: Dock Rush
 
-Ratio Studios — hybrid-casual prototype (browser / WebGL-canvas). **Status (v2 arcade feel): playable DockRun loop + Kade telemetry green + hazard crates + Flow/Fever + juice + Share Run / Challenge a Friend + mobile-web bundle (≈30 KB br).**
+Ratio Studios — hybrid-casual prototype (browser / WebGL-canvas). **Status (v3 strategic depth): Crate Crush branding + round events (Rush Hour / Inspection Shift / Jackpot crates) + magnet / glass / weighted-steel behaviours on top of the v2 loop (hazards, Flow/Fever, juice, Share Run / Challenge a Friend, Kade telemetry green, mobile-web bundle ≈36 KB br).** Changelog: [`CHANGELOG.md`](CHANGELOG.md).
+
+## Naming: Crate Crush is the game, Dock Rush is a Mode
+
+- **Crate Crush** is the master game / brand. **Dock Rush** is one **Mode** of it (the smash → sort → truck dock loop in this repo). Never write "Crate Crush: Dock Rush" as a game title in product copy; the lockup is **"Crate Crush — Mode: Dock Rush"** (long form) or **"Crate Crush"** + a **`MODE · DOCK RUSH`** chip (short form).
+- One source of truth: `CC.BRAND` in `web/js/core/config.js` (`game`, `mode`, `modeId`, `full`, `chip`, `studio`). `CC.UI.brandLockup()` / `CC.UI.modeChip()` in `widgets.js` draw it — Boot splash, Hub / Dock Brief / Upgrade Bay headers, the Results card, the shared PNG score card, share copy (`Crate Crush (Dock Rush mode) — …`), `<title>` / `og:` tags, the PWA manifest (`name: Crate Crush — Mode: Dock Rush`, `short_name: Crate Crush`), the dev panel.
+- Telemetry carries `mode: "dock_rush"` on every event (additive) so a future second Mode can share the same pipeline.
+- Internal IDs stay as they were: asset IDs `CC_DockRush_*`, localStorage keys `cc_dockrush_*`, screen IDs, level IDs `D01–D50`, and the repository URL. Those are Mode-scoped identifiers, not product copy.
 
 ```
 SCR_Boot → SCR_Hub → SCR_DockBrief → DockRun[ Phase_Smash → Phase_Sort → Phase_Truck | Overlay_Revive | Overlay_Results ] → SCR_Upgrade → SCR_Hub
@@ -43,11 +50,39 @@ The canvas is a 540×960 portrait (9:16) stage and letterboxes to any window. Wo
 
 | Phase | Input |
 |---|---|
-| Smash | **Tap** a crate (2 taps breaks a wood crate at Smash Lv1). **Hold** to auto-smash whatever is under your finger. **Frozen crate** (ice shell, `••` glyph): **double-tap** — two taps within 0.45 s shatter the ice, only then does damage land; holding never thaws. |
-| Sort | **Drag** the waiting cargo and release toward a lane (flick = physics toss), **drop** it onto a lane mouth, or **tap a lane** to send it there. Cargo left on the conveyor too long rolls off (spill). **Golden** cargo (gold halo) scores ×3. **Unstable** cargo (hazard band, blinking fuse) has a **2.5 s fuse** from the moment it lands — it keeps burning in your hand — and detonates into a spill. Dead-center landing = **PERFECT** (+5, haptic). |
+| Smash | **Tap** a crate (2 taps breaks a wood crate at Smash Lv1). **Hold** to auto-smash whatever is under your finger. **Frozen crate** (ice shell, `••` glyph): **double-tap** — two taps within 0.45 s shatter the ice, only then does damage land; holding never thaws. **Weighted steel** (dark slab, weight plates, `•••` glyph): **rapid multi-tap** — every explicit tap lifts it, the lift meter holds 0.25 s then drains fast; slow taps and holding let it settle. **Magnet crate** (horseshoe plate): normal crate, but its cargo comes out magnetised. **Jackpot crate** (gold, star): 4 hits, all its cargo golden + 2 extra pieces, big score/fever beat. |
+| Sort | **Drag** the waiting cargo and release toward a lane (flick = physics toss), **drop** it onto a lane mouth, or **tap a lane** to send it there. Cargo left on the conveyor too long rolls off (spill). **Golden** cargo (gold halo) scores ×3. **Unstable** cargo (hazard band, blinking fuse) has a **2.5 s fuse** from the moment it lands — it keeps burning in your hand — and detonates into a spill. **Magnet** cargo (field ticks, horseshoe tag) in a free flick snaps to the lane mouth nearest to where it would land. **Glass** cargo (sheen, `!` tag) shatters on a hard free flick / wall hit / hard landing — tap-a-lane and drop are safe. Dead-center landing = **PERFECT** (+5, haptic). During **Rush Hour** two pieces wait on two belts — pointer-down grabs the nearest one. |
 | Truck | Auto: lanes stream into the truck; tap to skip the FULL beat early. |
 | Revive | Watch ad (stub) / coins / free daily / decline. |
 | Results | **SHARE RUN** / **CHALLENGE A FRIEND** (see below) · CONTINUE → Upgrade Bay (or 2× HAUL ad stub). Failed: RETRY same dock. |
+
+## v3 strategic depth — round events + behaviours
+
+Everything below sits on top of the v2 hazards (Timed / Golden / Frozen), keeps the Smash→Sort→Truck order locked and leaves coins untouched: every new reward is run **score** / **fever** (so it lands in the haul score the Share/Challenge loop competes on), never coins.
+
+**Round events** (`web/js/screens/round_events.js`, tunables `CONFIG.EVENTS`; Sort phase only, none before D07; `?noevents=1` disables):
+
+| Event | From | Rule | Read (mute) |
+|---|---|---|---|
+| **Rush Hour** | D07 | A second conveyor belt opens (`belts: 2`) for 8 s: two pieces wait at once, spawn cadence ×0.55, roll-off wait ×0.85, every piece arrives with an outward shove. Fever gain ×1.25 while it runs. Pointer-down grabs the nearest waiting piece; tap-a-lane / drop / flick work per piece. | 1.4 s blinking `⇶ RUSH HOUR IN n` pill + two-tick warn; amber chevrons run along both belt plates; `⇶ RUSH HOUR · 2 BELTS` pill with a draining time bar |
+| **Inspection Shift** | D10 | Lanes rotate one slot (2 lanes = swap) with a 0.45 s ease-out slide, and every cargo/lane colour mutes to grey for 8 s — sort by **shape** only. Lane identity (`idx`, `id`, types, seated cargo, telemetry bins) never changes; only the position does. Lanes slide home when it ends. | `⇄ INSPECTION SHIFT · SHAPES ONLY` pill, `INSPECT` stamp on every lane plaque, desaturated cargo (glyphs are the v1 shape code, so this is the readable-mute test in play) |
+| **Jackpot crate** (rare) | D08 | Per-dock roll (16 % → 30 %), at most one, never on steel: gold crate with 4 hp; its cargo is all golden **and** it carries +2 extra pieces; cracking it pays +40 score (× fever) and +0.35 fever. Rolled in Smash so the phase order stays locked. | gold body + star badge + glint sweep; `JACKPOT +N`, flash, shake, fever haptic |
+
+Scheduler: first event no earlier than 5.5 s into Sort, then a random 9–14 s gap between events; the pool alternates (random first pick); no event starts with fewer than 5 pieces left, and an active event ends early when the dock is done. Telemetry (additive): `round_event { level_id, event_id: rush_hour | inspection_shift, action: start | end, duration_s, pieces_left }`; `dock_clear` / `dock_fail` gain `round_events`, `jackpots`.
+
+**Behaviours** (`lv.hazards.magnetPct / fragilePct / steelPct`, tunables `CONFIG.MAGNET / GLASS / STEEL`):
+
+| Behaviour | From | Rule | Skill read |
+|---|---|---|---|
+| **Weighted steel** crate | D11 (10 % → 35 % of crates) | Only explicit taps count: each adds `tapGain` × smash damage (0.22 at Lv1 → 5 taps) to a lift meter that holds for `grace` 0.25 s and then drains at 1.2/s. Hold auto-repeat never lifts it (one-time `TAP FAST — DON'T HOLD`). Meter full → `HEAVED!`, the crate opens. Never frozen, never magnet, never jackpot (one mash rule per crate). | Distinct from Frozen's *two taps in 0.45 s*: this is *keep tapping ≥ ~4/s*. Crate visibly lifts off its shadow with the meter; settles with a thud when the meter empties. |
+| **Magnet** crate → magnet cargo | D08 (10 % → 25 % of wood/metal crates) | Cargo released from a magnet crate is magnetised. In **free flight** (flick), once it is below y = 470 and falling, it locks onto the lane mouth nearest to its **predicted ballistic landing point** if that is within 78 px, and steers in; on arrival it snaps to the centre. Assisted throws (tap-a-lane, drop) are unaffected. A snap counts as assisted: no PERFECT, no rim near-miss beat. | Sticky assist when you aim roughly right; a trap when your throw would have landed nearer the wrong lane — it snaps into that bin and spills (`sort_miss.chosen_bin` = that lane). Dashed field line while pulling, `SNAP`, pneumatic snap. |
+| **Fragile glass** cargo | D09 (10 % → 30 % of pieces; never on unstable pieces) | Shatters (= spill on the spot, `sort_miss.hazard = "shatter"`) when: a free flick's finger speed > 1150 px/s, a wall hit with \|vx\| > 520 px/s, or a landing with vy > 1250 px/s (≈ anything lobbed above the truck line). Tap-a-lane and drop-on-lane are gentle by definition and never shatter. A shattered piece comes back **bubble-wrapped** (`fragile: false`), like a detonated piece comes back stable. | Skill punish for a careless flick, not a timer. Glass sheen + `!` tag; ice-white shards; `SHATTERED — TOO HARD / WALL / TOO HIGH` the first time. |
+
+Results adds a **SHIFT REPORT** row (`3 events · 1 jackpot · 3 steel · 2 snap · 1 shattered`). `dock_clear` / `dock_fail` gain `steel_heaved`, `magnet_snaps`, `glass_shattered`. Dock Brief lists the tags a dock can throw (`SHIFT REPORT · RUSH HOUR · INSPECTION · JACKPOT? · MAGNET · GLASS · STEEL`).
+
+**Sort internals**: `PhaseSort.active` (single piece) became `PhaseSort.pieces[]` + `grab` (the held piece); `sort.active` remains as a compat getter (held piece, else first waiting). `fling / dropAt / flingToLane` take an optional piece; `flingToLane(idx, noisy, piece)` is what the bot uses. `belts` is 1 unless `sort.rush` is set by the event.
+
+**Dev panel**: live event line (active / warn / next-in, belts, pieces, inspection, jackpot, steel, snaps, shattered) and **Force Rush Hour / Force Inspection Shift / End event** buttons (Sort phase).
 
 ## v2 arcade feel — hazards, juice, Flow/Fever
 
@@ -83,9 +118,20 @@ The canvas is a 540×960 portrait (9:16) stage and letterboxes to any window. Wo
 | `fever(tier)` | fever tier entered, 1–3; `0` when it drops out — `dockrun.js` |
 | existing `thud` `crack` `pop` `splat` `sting` `coin` `fail` | unchanged synth calls remain beside the new hooks |
 
+**v3 hooks (Kade)** — added in `audio.js` with procedural fallbacks and drop-in sample slots (`web/audio/sfx/README.md` lists filenames). Stubs are fine until the pack lands; nothing blocks on it.
+
+| Hook | Fired from |
+|---|---|
+| `fracture(material, big)` — `wood` `metal` `steel` `glass` `ice` | every crate hit/break now routes here (`phase_smash.js`; jackpot = `metal` + `roundEvent('jackpot')`), glass shatter (`phase_sort.js`). Metal/steel/glass have their own sample slots; wood/ice fall through to `smash()` |
+| `pneumatic(kind)` — `snap` `hiss` `release` | magnet snap onto a lane mouth (`phase_sort.js`); Rush Hour belt hiss and event-end release (`round_events.js`) |
+| `streakPitch(streak)` | every clean sort, one semitone per streak step, 2-octave cap (`phase_sort.js`) — the per-sort pitch ladder under the step `chime()` |
+| `grooveIntensity(0..1)` | `dockrun.js`, ~4 Hz: fever value + 0.25 during Rush Hour; `0` on leaving the dock. Sample loop → bed gain 0.08–0.28; procedural → hats/bass/sparkle ladder |
+| `roundEvent(id, phase)` — `rush_hour` `inspection_shift` `jackpot` × `warn` `start` `end` | `round_events.js` (warn two-tick, start stinger, end release), `phase_smash.js` (jackpot crack) |
+| `heave(k)` | weighted steel: each explicit tap with the lift meter `k` (pitch climbs); `heave(-1)` when the meter empties and the crate settles (`phase_smash.js`) |
+
 `CC.audio` is the same instance as `CC.game.audio`. Audio stays default-off and the game reads fully muted (Vale mute rule).
 
-Useful URL flags: `?dev=1` (open dev panel), `?bot=1` (autoplay acceptance session), `?bot=1&autodownload=1` (also downloads the JSONL when done), `?sheet=1` (asset sheet), `?reset=1` (wipe profile + telemetry = fresh install), `?nodesync=1` (disable the low-latency `desynchronized` canvas hint if a device misbehaves). `#challenge=D03-412-7-31-c` in the hash is an inbound Challenge link (below).
+Useful URL flags: `?dev=1` (open dev panel), `?bot=1` (autoplay acceptance session), `?bot=1&autodownload=1` (also downloads the JSONL when done), `?sheet=1` (asset sheet), `?reset=1` (wipe profile + telemetry = fresh install), `?nodesync=1` (disable the low-latency `desynchronized` canvas hint if a device misbehaves), `?noevents=1` (no round events — clean capture takes). `#challenge=D03-412-7-31-c` in the hash is an inbound Challenge link (below).
 
 ## Share Run / Challenge a Friend (organic loop — $0 ads, no paywall, no monetization)
 
@@ -130,7 +176,7 @@ Audit of `main` and what changed. Measured in the same headless Chrome before/af
 
 | Area | Before | After |
 |---|---|---|
-| Critical path | 24 blocking `<script>` + CSS + HTML = **144 KB over 26 requests**, dev tooling always loaded | `defer` scripts in dev; `npm run build` → **29.5 KB brotli / 34.3 KB gzip over 2 requests** incl. all v2 systems (`index.html` with inlined CSS + `app.<hash>.js`); dev tooling (`js/dev/*`, 3 KB br) is a separate chunk fetched only for `?dev` / `?bot` / `?sheet`, the DEV button or `` ` `` |
+| Critical path | 24 blocking `<script>` + CSS + HTML = **144 KB over 26 requests**, dev tooling always loaded | `defer` scripts in dev; `npm run build` → **29.5 KB brotli / 34.3 KB gzip over 2 requests** incl. all v2 systems (v3 events + behaviours: **35.6 KB br / 41.5 KB gz**) (`index.html` with inlined CSS + `app.<hash>.js`); dev tooling (`js/dev/*`, 3.5 KB br) is a separate chunk fetched only for `?dev` / `?bot` / `?sheet`, the DEV button or `` ` `` |
 | Telemetry persist | `localStorage.setItem` of the whole ~1 MB JSONL ring buffer **synchronously on every event** — **7.8 ms per `smash` tap** with a full buffer (desktop), inside the pointer handler | Debounced to `requestIdleCallback` (400 ms `setTimeout` fallback), flushed on `session_end` / `pagehide` / download. **0.007 ms per emit.** Buffer semantics and JSONL output unchanged |
 | Pointer → logical coords | `getBoundingClientRect()` on every pointer event (forces style/layout) | Rect cached; invalidated on resize / scroll / orientation / `Game.resize()` |
 | Drag sampling | `pointermove` (coalesced to the frame on Chrome/Android) | `pointerrawupdate` when supported → the frame simulates from the freshest finger position; falls back to `pointermove` |
@@ -202,9 +248,9 @@ web/
   js/core/              config (hazard/ramp/fever tunables), util, input (tap/hold/drag/swipe + latency probe),
                         fx (bursts, splinters, haptic vocabulary), audio (Kade-owned; synth + hook stubs),
                         telemetry (debounced persist), save, share (Share Run / Challenge link + PNG card)
-  js/data/              economy (CSV mirror), cargo types (+golden/timed draw), levels D01–D50 (+hazards), CC_DockRush_* assets
-  js/ui/widgets.js      buttons / panels / HUD chips / stage backdrop (offscreen-cached)
-  js/screens/           boot, hub, dockbrief, dockrun (+ phase_smash/sort/truck, overlay_revive/results), upgrade
+  js/data/              economy (CSV mirror), cargo types (+golden/timed/magnet/fragile/mute draw), levels D01–D50 (+hazards, events), CC_DockRush_* assets
+  js/ui/widgets.js      buttons / panels / HUD chips / brand lockup + Mode chip / stage backdrop (offscreen-cached)
+  js/screens/           boot, hub, dockbrief, dockrun (+ phase_smash/sort/truck, round_events, overlay_revive/results), upgrade
   js/dev/               dev panel, autoplay bot, asset sheet — lazy chunk, not on the player's critical path
 tools/build.mjs              → dist/ (bundle, minify, inline CSS, .gz/.br)   npm run build
 tools/serve.mjs              zero-dep static server w/ brotli/gzip negotiation  npm run dev | npm run serve
@@ -221,6 +267,7 @@ telemetry/sample-session.jsonl
 - `docs-telemetry/` — Kade telemetry / retention
 
 ## Verification done
+- v3 depth pass (headless Chrome via puppeteer-core, both `web/` source and the minified `dist/`): `?bot=1` still GREEN with 0 page errors and `mode: "dock_rush"` on every event; D14 with hazards forced on — weighted steel ignores 3 slow taps (0.6 s apart) and a 1 s hold, opens on 7 taps at 60 ms; jackpot cracks on 4 taps with `stats.jackpots=1`, +40 score, fever ≥0.3, `smash.crate_type="jackpot"`, `cargoTotal` includes its extra pieces; glass shatters on a 2200 px/s free flick (`sort_miss.hazard="shatter"`, comes back `fragile:false`) and seats safely via tap-a-lane; magnet lob 45 px off the right lane snaps + seats, the same lob at a wrong lane snaps + spills in that bin; forced Rush Hour → 2 belts, two waiting pieces on distinct belts, pointer-down grabs the nearest; forced Inspection → lanes rotate one slot exactly (30/193/357 → 193/357/30), mute on, home again after end; `round_event` start/end emitted; `dock_clear` carries `round_events / jackpots / steel_heaved / magnet_snaps / glass_shattered`; share copy reads `Crate Crush (Dock Rush mode)`. Natural D14 / D30 / D45 at base stats clear inside the timer (18–20 s) with a frame cost of p50 1.1 ms / p95 2.2 ms including Rush Hour. `check-economy` GREEN, `verify-telemetry` GREEN on the new bot JSONL.
 - Headless Chrome (Playwright) `?bot=1` run: 0 page errors; all 11 must-ship events in one session (`tools/verify-telemetry.mjs` green).
 - Mobile-web pass (headless Chrome via CDP, both `web/` source and the minified `dist/`): `?bot=1` still GREEN with 0 page errors; inbound `#challenge` link → `install.attribution`, `challenge_open`, Hub routing, D03 playable from a fresh install with `nextLevel` staying 1; real dispatched touch taps through smash; Results SHARE RUN via stubbed Web Share carries the PNG + deep link, CHALLENGE A FRIEND falls back to clipboard; link round-trips through `CC.Share.decode`; DEV button lazy-loads the dev chunk. `check-economy` GREEN.
 - v2 feel pass (headless, real touch taps, D08 with hazards forced on): single tap on a frozen crate cracks without damage, second tap ≤0.45 s shatters + hits, a 0.7 s second tap does not; an unstable piece left alone detonates at fuse ≈2.5 s exactly once and comes back stable; golden pieces seat ×3; fever reaches ×3 on a clean streak; conveyor cadence measured ramping 0.32 → 0.21 s; `dock_clear` carries the feel props; 0 page errors. Bot (D01/D02, no hazards) unchanged and GREEN.

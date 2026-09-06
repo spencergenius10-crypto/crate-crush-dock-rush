@@ -1,10 +1,20 @@
-/* Crate Crush: Dock Rush — global config (portrait 9:16 logical canvas) */
+/* Crate Crush — Mode: Dock Rush — global config (portrait 9:16 logical canvas) */
 window.CC = window.CC || {};
+
+// Master game is Crate Crush; Dock Rush is one Mode of it. All in-product copy reads from here.
+CC.BRAND = {
+  game: 'Crate Crush',
+  mode: 'Dock Rush',
+  modeId: 'dock_rush',
+  full: 'Crate Crush — Mode: Dock Rush',
+  chip: 'MODE · DOCK RUSH',
+  studio: 'Ratio Studios',
+};
 
 CC.CONFIG = {
   W: 540,
   H: 960,
-  APP_VER: '0.1.0-proto',
+  APP_VER: '0.2.0-proto',
   SCHEMA_VER: '1.0',
   // Web prototype maps to the `editor` platform enum in telemetry-retention-v1.md
   PLATFORM: 'editor',
@@ -37,6 +47,26 @@ CC.CONFIG = {
 
   // Conveyor ramp / erratic feed as streak climbs (Sort)
   RAMP: { streakStart: 3, streakFull: 15, cadenceMin: 0.55, waitMin: 0.7, jitterMax: 110, slideVx: 260 },
+
+  // Round events (Sort phase). A warning banner runs WARN_S before the event lands so it reads mute.
+  EVENTS: {
+    firstAt: 5.5,               // seconds into Sort before the first event can fire
+    period: [9, 14],            // seconds between the end of one event and the next warning
+    warn: 1.4,
+    minRemaining: 5,            // no event when fewer pieces than this are left to sort
+    rush: { dur: 8, belts: 2, cadenceMul: 0.55, waitMul: 0.85, slideVx: 220, feverGainMul: 1.25 },
+    inspection: { dur: 8, mute: 0.88, swapAnimS: 0.45 },
+    jackpot: { hp: 4, extraCargo: 2, score: 40, fever: 0.35 },
+  },
+
+  // Behaviours
+  // Weighted steel: only explicit taps lift it; the lift meter holds for `grace` s after a tap then drains fast.
+  STEEL: { tapGain: 0.22, grace: 0.25, decay: 1.2, liftPx: 16 },
+  // Magnet cargo: in free flight below `fromY` it steers toward the nearest lane mouth within `radius` px.
+  MAGNET: { radius: 78, fromY: 470, strength: 9, snapPx: 8 },
+  // Fragile glass: a free flick faster than `maxSpeed`, a wall hit harder than `wallVx`, or a landing faster than
+  // `landVy` shatters it (= spill). Tap-a-lane and drop-on-lane are gentle by definition.
+  GLASS: { maxSpeed: 1150, wallVx: 520, landVy: 1250 },
 
   // Flow / Fever (0..1, decaying). Tiers → score multiplier 2× / 3× / 5×
   FEVER: {

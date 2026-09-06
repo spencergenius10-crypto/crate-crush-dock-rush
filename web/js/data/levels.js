@@ -25,10 +25,22 @@ CC.getLevel = function (n) {
   //   frozen crate  D04+  double-tap to shatter the ice before smash damage lands
   //   golden cargo  D04+  ×3 score when sorted right, big fever push
   //   timed cargo   D06+  fuse: sort within TIMED_FUSE_S or it detonates (= spill)
+  //   magnet crate  D08+  its cargo is magnetised: in free flight it snaps to the NEAREST lane mouth (assist or trap)
+  //   fragile glass D09+  cargo that shatters (= spill) on a hard flick / wall hit / hard landing
+  //   weighted steel D11+ crate that only lifts under rapid explicit taps (hold and slow taps let it settle)
   const hazards = {
     frozenPct: n >= 4 ? CC.U.clamp(0.15 + (n - 4) * 0.01, 0.15, 0.4) : 0,
     goldenPct: n >= 4 ? 0.12 : 0,
     timedPct: n >= 6 ? CC.U.clamp(0.12 + (n - 6) * 0.008, 0.12, 0.35) : 0,
+    magnetPct: n >= 8 ? CC.U.clamp(0.1 + (n - 8) * 0.006, 0.1, 0.25) : 0,
+    fragilePct: n >= 9 ? CC.U.clamp(0.1 + (n - 9) * 0.006, 0.1, 0.3) : 0,
+    steelPct: n >= 11 ? CC.U.clamp(0.1 + (n - 11) * 0.008, 0.1, 0.35) : 0,
+  };
+  // Round events (Sort): Rush Hour D07+, Inspection Shift D10+; Jackpot crate = rare per-dock roll from D08.
+  const events = {
+    rush: n >= 7,
+    inspection: n >= 10,
+    jackpotChance: n >= 8 ? CC.U.clamp(0.16 + (n - 8) * 0.004, 0.16, 0.3) : 0,
   };
 
   return {
@@ -46,6 +58,7 @@ CC.getLevel = function (n) {
     expectedCoins: band.expected,
     timerPressure: n >= 13,
     hazards,
+    events,
     ftue: n === 1,
     difficulty_tier: band.id,
   };

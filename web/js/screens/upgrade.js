@@ -79,6 +79,7 @@ CC.UpgradeScreen = class {
     const C = CC.CONFIG.COLORS, W = CC.CONFIG.W, H = CC.CONFIG.H, p = this.g.p;
     ctx.fillStyle = C.BG_UI; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = '#20262f'; for (let i = 0; i < 6; i++) ctx.fillRect(i * 90 + 4, 0, 82, H);
+    CC.UI.modeChip(ctx, W / 2, 22);
     CC.UI.header(ctx, 'UPGRADE BAY', 'coins buy power · gems/shards never do');
     CC.UI.coinChip(ctx, W - 20, 20, p.coins, 'right');
 
