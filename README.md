@@ -69,19 +69,27 @@ The canvas is a 540×960 portrait (9:16) stage and letterboxes to any window. Wo
 
 **Telemetry (additive)**: `dock_clear` / `dock_fail` carry `run_score`, `fever_peak_tier`, `golden_sorted`, `unstable_detonated`; `sort_miss` carries `hazard` when a fuse ran out. Must-ship events and required props are unchanged.
 
-**Audio hook sites (Kade owns `web/js/core/audio.js` + `web/audio/{sfx,music}/`).** Gameplay fires `CC.audio.*` at every beat; `audio.js` only gained no-op stubs for the names that did not exist, so nothing here depends on the pack landing. Every call site is marked `// Kade audio`:
+## Sonic — procedural SFX + dynamic groove (`web/js/core/audio.js`, slots in `web/audio/`)
 
-| Hook | Fired from |
-|---|---|
-| `smash(kind, big)` | crate hit / break (`wood` `metal`), ice shatter (`ice`, big) — `phase_smash.js` |
-| `snap(perfect)` | cargo seated in the right lane — `phase_sort.js` |
-| `whoosh()` | fling / tap-a-lane, Smash→Sort swap, truck FULL — `phase_sort.js`, `dockrun.js`, `phase_truck.js` |
-| `chime(tier)` | streak step reached (tier = step index); `chime(0)` on the Share/Challenge buttons — `phase_sort.js`, `overlay_results.js` |
-| `error(kind)` | `spill` `wrong_lane` `unstable` (fuse) `ice` (hit absorbed by a frozen shell) — `phase_sort.js`, `phase_smash.js` |
-| `fever(tier)` | fever tier entered, 1–3; `0` when it drops out — `dockrun.js` |
-| existing `thud` `crack` `pop` `splat` `sting` `coin` `fail` | unchanged synth calls remain beside the new hooks |
+Zero binary assets ship; everything is synthesized in WebAudio at call time, so the sonic pack costs ~3 KB brotli and no requests. Real recordings drop in by **name** later without touching gameplay — see [`web/audio/README.md`](web/audio/README.md) for the slot list, formats and stem rules.
 
-`CC.audio` is the same instance as `CC.game.audio`. Audio stays default-off and the game reads fully muted (Vale mute rule).
+**Master chain**: SFX bus + music bus → limiter-style compressor → 70 Hz high-pass → out. Thumps, kick and bass go through a per-voice `tanh` soft clip so they keep harmonics a phone speaker can reproduce; nothing lives only in the sub band. The music bus is low-passed at 5.2 kHz (lo-fi tilt) so SFX sit in front.
+
+**SFX hooks** (one call per beat; every method tries `CC.CONFIG.AUDIO_SAMPLES[name]` first, then synthesizes):
+
+| Hook | Sound | Fired from |
+|---|---|---|
+| `smash(kind, big)` | **wood-crunch**: low thump + a cluster of short bandpassed bursts (7 on a break, 3 on a hit) + lowpassed tail · **metal**: thump + two inharmonic partials · **ice**: glassy noise + descending chirps, ×5 on shatter | `phase_smash.js` hit / break / thaw |
+| `snap(perfect)` | **bin clack**: tight 1.9 kHz knock + click + body; perfect adds a 1760 Hz ting + octave | `phase_sort.js` seat |
+| `whoosh()` | bandpass noise sweep 380 → 2600 Hz | fling / tap-a-lane, Smash→Sort swap, truck FULL |
+| `chime(tier)` | **escalating combo chimes**: pentatonic run, 2 + tier notes, base note rises with tier; `chime(0)` = soft 2-note for the Share/Challenge buttons | streak steps, Results buttons |
+| `error(kind)` | **crisp error thud**: fast sine drop through the clipper + dry lowpassed knock; `unstable` adds a saw buzz + noise burst; `ice` is a quiet clink (hit absorbed) | spill / wrong lane / fuse detonation / frozen shell |
+| `fever(tier)` | noise riser + stacked chord that widens with the tier; `fever(0)` = soft fall when it drops out | `dockrun.js` tier change |
+| `thud` `crack` `pop` `splat` `sting` `coin` `fail` | legacy names mapped onto the pack (truck load, UI tap, FULL fanfare, coins, dock fail) | truck / UI / results |
+
+**Groove**: 92 BPM, 16-step lookahead scheduler (80 ms tick, 220 ms lookahead), swung 16ths. Kick 0/8, snare 4/12, closed hats on 8ths, E-minor-pentatonic bass riff over a two-bar phrase (saw + octave partial → resonant lowpass → clip), an industrial clank every other bar, a lo-fi Em stab every two bars. `Game.musicIntensity()` feeds `audio.setIntensity(0..1)` every frame — Hub 0.12, DockRun `0.2 + 0.55·fever + streak bonus`, Truck 0.6, clear Results 0.45 — and the scheduler turns that into: hats gain 0.35 → 1.0 and 16ths above 0.3, open hat on step 14 above 0.6, bass cutoff 380 → 1680 Hz and drive, kick ghost on 10 above 0.35 / double on 6 above 0.75, snare ghosts on 7/15 above 0.5. Recorded stems (`music_base` / `music_hats` / `music_bass`) replace the scheduler in sync when present.
+
+**Lifecycle / mute rules**: the `AudioContext` is created and resumed only inside the first `pointerdown` (autoplay policy) and never blocks input; the page hiding suspends it, returning resumes it. Audio defaults **on** for new installs; the **capture preset mutes**; Hub has a one-tap `♪ ON/OFF` chip and Settings the full toggle. The game reads fully with sound off (Vale mute rule). `CC.audio` is the same instance as `CC.game.audio`.
 
 Useful URL flags: `?dev=1` (open dev panel), `?bot=1` (autoplay acceptance session), `?bot=1&autodownload=1` (also downloads the JSONL when done), `?sheet=1` (asset sheet), `?reset=1` (wipe profile + telemetry = fresh install), `?nodesync=1` (disable the low-latency `desynchronized` canvas hint if a device misbehaves). `#challenge=D03-412-7-31-c` in the hash is an inbound Challenge link (below).
 
@@ -198,7 +206,7 @@ Everything is a procedural silhouette-first placeholder keyed by canonical ID in
 web/
   index.html            canvas + DOM dev panel; <script defer> order = load order (build bundles this list)
   js/core/              config (hazard/ramp/fever tunables), util, input (tap/hold/drag/swipe + latency probe),
-                        fx (bursts, splinters, haptic vocabulary), audio (Kade-owned; synth + hook stubs),
+                        fx (bursts, splinters, haptic vocabulary), audio (procedural SFX pack + dynamic groove),
                         telemetry (debounced persist), save, share (Share Run / Challenge link + PNG card)
   js/data/              economy (CSV mirror), cargo types (+golden/timed draw), levels D01–D50 (+hazards), CC_DockRush_* assets
   js/ui/widgets.js      buttons / panels / HUD chips / stage backdrop (offscreen-cached)
