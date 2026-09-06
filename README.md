@@ -70,7 +70,7 @@ Power is coins-only. Gems/shards/SKUs grant cosmetics, consumables or soft curre
 
 ## Capture guide (Ari 5s / Brooks T1–T5)
 
-Hub → Settings → **CAPTURE PRESET: ON** (audio off, HUD chrome minimal, FX ×1.35). Critical action sits inside the center ~70% vertical; timer ring top-safe, CTA bottom-safe.
+Hub → Settings → **CAPTURE PRESET: ON** (audio off, HUD chrome minimal, FX ×1.35). For unhurried takes, open the dev panel (`DEV` button / `` ` `` key) → **Freeze timer (capture)** (also pauses the conveyor clock), then hide the panel. Critical action sits inside the center ~70% vertical; timer ring top-safe, CTA bottom-safe.
 
 | Beat | How to get it in the prototype |
 |---|---|
@@ -111,6 +111,12 @@ telemetry/sample-session.jsonl
 - `UI-UX-ASSET-DIRECTION-v1.md`
 - `CRATE-CRUSH-DOCK-RUSH-TIKTOK-TEMPLATES.md`
 - `docs-telemetry/` — Kade telemetry / retention
+
+## Verification done
+- Headless Chrome (Playwright) `?bot=1` run: 0 page errors; all 11 must-ship events in one session (`tools/verify-telemetry.mjs` green).
+- Real mouse/X11 input: tap + hold smash, drag, flick, drop-on-lane and tap-a-lane all land; input recovers from a lost `pointerup`.
+- GUI playthrough (recorded): D01 smash → sort (12/12, 0 misses) → truck FULL → results → Upgrade Bay → Hub shows D01 cleared.
+- Later docks verified clearable at base stats: D13/2 lanes, D21/3 lanes, D36/4 lanes, D45/4 lanes, D50/5 lanes (~34–44 s).
 
 ## Known gaps / notes
 - Rewarded video and IAP are stubs (2.5 s fake ad with skip; `iap.validated=false`). No live ads SDK, no store.
