@@ -76,7 +76,7 @@ CC.DockRunScreen = class {
     this.ftueText = null;
   }
 
-  smashComplete() { this.setPhase('sort'); this.g.audio.whoosh(); this.g.fx.doFlash(0.12, '#fff'); } // audio hook: phase-swap whoosh
+  smashComplete() { this.setPhase('sort'); this.g.audio.whoosh(); this.g.fx.doFlash(0.12, '#fff'); } // Kade audio (whoosh)
   sortComplete() { this.setPhase('truck'); }
 
   // ---------- score + fever ----------
@@ -103,7 +103,7 @@ CC.DockRunScreen = class {
       this.g.fx.hapticFever(tier);
       for (const l of this.lanes) l.flashT = 0.4;
     }
-    this.g.audio.fever(tier); // audio hook: fever tier entered (0 = dropped out)
+    this.g.audio.fever(tier); // Kade audio — tier entered (0 = dropped out)
   }
   feverUpdate(dt) {
     if (this.fever <= 0) return;

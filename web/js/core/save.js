@@ -18,7 +18,7 @@ CC.Save = class {
       cleared: {},                 // level_id -> clear count
       attempts: {},                // level_id -> attempt count
       ftue: { smash: false, sort: false, truck: false },
-      settings: { audio: true, haptics: true, capture: false }, // capture preset mutes regardless of `audio`
+      settings: { audio: false, haptics: true, capture: false },
       bestStreak: 0,
       bestHaul: 0,
       challenge: null,             // inbound friend's challenge {n, level_id, score, streak, time, cleared} until beaten/dismissed

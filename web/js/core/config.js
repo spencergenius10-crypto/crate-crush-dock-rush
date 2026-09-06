@@ -38,10 +38,6 @@ CC.CONFIG = {
   // Conveyor ramp / erratic feed as streak climbs (Sort)
   RAMP: { streakStart: 3, streakFull: 15, cadenceMin: 0.55, waitMin: 0.7, jitterMax: 110, slideVx: 260 },
 
-  // Optional real audio drop-ins (web/audio/README.md). Empty = fully procedural, zero extra requests.
-  // e.g. { smash_wood_big: 'audio/sfx/smash_wood_big.wav', music_base: 'audio/music/groove_base.ogg' }
-  AUDIO_SAMPLES: {},
-
   // Flow / Fever (0..1, decaying). Tiers → score multiplier 2× / 3× / 5×
   FEVER: {
     tiers: [0.3, 0.6, 0.9], mults: [1, 2, 3, 5],

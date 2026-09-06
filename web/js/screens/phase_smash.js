@@ -62,14 +62,16 @@ CC.PhaseSmash = class {
       this.g.fx.smashBurst(x, y, '#dff4ff', false);
       this.g.fx.doShake(2.5); this.g.fx.haptic([10, 20, 18]);
       this.g.fx.floatText(c.x + c.w / 2, c.y - 10, 'THAWED', '#dff4ff', 22, { punch: 1 });
-      this.g.audio.smash('ice', true); // audio hook: ice shatter
+      this.g.audio.crack();
+      this.g.audio.smash('ice', true); // Kade audio
       // the shatter tap also lands as a real hit so the double tap feels like it paid off
       this.hit(c, x, y);
       return;
     }
     c.iceCracked = true;
     this.g.fx.trail(x, y, '#dff4ff');
-    this.g.audio.error('ice'); // audio hook: clink — ice absorbed the hit
+    this.g.audio.pop();
+    this.g.audio.error('ice'); // Kade audio — clink: ice absorbed the hit
     if (!hints.frozen) { hints.frozen = true; this.g.fx.floatText(c.x + c.w / 2, c.y - 16, 'DOUBLE-TAP TO THAW', C.Spill, 20, { life: 1.3, punch: 1 }); }
   }
 
@@ -77,11 +79,12 @@ CC.PhaseSmash = class {
     const C = CC.CONFIG.COLORS, run = this.run;
     c.hp -= this.dmg;
     c.wob = 1;
+    this.g.audio.thud();
     const woodCols = [C.Wood, C.WoodDark, C.WoodLight], metalCols = [C.Metal, C.MetalDark, '#c9d0da'];
     if (c.hp > 0) {
       this.g.fx.smashBurst(x, y, C.Accent_Smash, false);
       this.g.fx.splinters(c.x, c.y, c.w, c.h, c.type === 'metal' ? metalCols : woodCols, 4, this.floorY);
-      this.g.audio.smash(c.type, false); // audio hook: crate hit
+      this.g.audio.smash(c.type, false); // Kade audio
       run.addScore(2); run.addFever(CC.CONFIG.FEVER.gainSmash);
       return;
     }
@@ -92,7 +95,8 @@ CC.PhaseSmash = class {
     this.lastBreakT = this.t;
     run.stats.smashed++;
     this.g.p.stats.crates_smashed++;
-    this.g.audio.smash(c.type, true); // audio hook: crate break (wood crunch / metal)
+    this.g.audio.crack();
+    this.g.audio.smash(c.type, true); // Kade audio
     this.g.fx.smashBurst(cx, cy, this.g.p.cosmetics.smash_fx_spark ? '#ffe08a' : C.Accent_Smash, true);
     // splinters are the read: long shards that spin out and skid on the dock floor (chips fill the middle)
     this.g.fx.splinters(c.x, c.y, c.w, c.h, c.type === 'metal' ? metalCols : woodCols, c.type === 'metal' ? 8 : 12, this.floorY);

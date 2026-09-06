@@ -33,7 +33,7 @@ CC.Game = class {
     this.ctx = canvas.getContext('2d', { alpha: false, desynchronized: !CC.U.query('nodesync') });
     this.fx = new CC.FX();
     this.audio = new CC.Audio();
-    CC.audio = this.audio; // same instance, reachable as CC.audio.* from anywhere
+    CC.audio = this.audio; // Kade audio — same instance, reachable as CC.audio.* from anywhere
     this.tlm = new CC.Telemetry();
     this.save = new CC.Save();
     this.applySettings();
@@ -63,8 +63,8 @@ CC.Game = class {
     this.tlm.startSession(true);
     if (CC.inboundChallenge) this.tlm.challengeOpen({ level_id: CC.inboundChallenge.level_id, target_score: CC.inboundChallenge.score, fresh_install: this.tlm.events.some((e) => e.event_name === 'install') });
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') { this.tlm.endSession('background'); this.audio.suspend(); }
-      else { if (this.tlm.ended) this.tlm.startSession(false); this.audio.resume(); }
+      if (document.visibilityState === 'hidden') this.tlm.endSession('background');
+      else if (this.tlm.ended) this.tlm.startSession(false);
     });
     window.addEventListener('pagehide', () => this.tlm.endSession('pagehide'));
 
@@ -81,19 +81,9 @@ CC.Game = class {
   get p() { return this.save.p; }
   applySettings() {
     const s = this.save.p.settings;
-    this.audio.setEnabled(!!s.audio && !s.capture); // capture preset is mute-first
+    this.audio.setEnabled(!!s.audio);
     this.fx.hapticsEnabled = !!s.haptics;
     this.fx.scale = s.capture ? 1.35 : 1;
-  }
-
-  // Music intensity 0..1 → hat density / bass drive. Read by the audio scheduler; cheap to set every frame.
-  musicIntensity() {
-    if (this.rvOverlay) return 0.05;
-    if (this.currentId !== 'DockRun') return 0.12;
-    const run = this.current;
-    if (run.overlay) return run.result === 'clear' ? 0.45 : 0.08;
-    if (run.phaseName === 'truck') return 0.6;
-    return CC.U.clamp(0.2 + run.fever * 0.55 + Math.min(0.25, run.stats.streak * 0.02), 0, 1);
   }
 
   resize() {
@@ -121,7 +111,6 @@ CC.Game = class {
   rvStub(placement, levelId, cb) { this.rvOverlay = new CC.RVStub(this, placement, levelId, cb); }
 
   pointer(type, e) {
-    if (type === 'down') this.audio.unlock(); // first tap unlocks the AudioContext; never blocks input
     if (this.rvOverlay) { this.rvOverlay.onPointer(type, e); return; }
     if (this.current && this.current.onPointer) this.current.onPointer(type, e);
   }
@@ -145,7 +134,6 @@ CC.Game = class {
       else if (this.current && this.current.update) this.current.update(dt);
       this.fx.update(dt);
       if (this.bot) this.bot.update(dt);
-      this.audio.setIntensity(this.musicIntensity());
 
       const ctx = this.ctx;
       ctx.save();
