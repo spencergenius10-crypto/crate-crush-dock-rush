@@ -32,16 +32,19 @@ CC.HubScreen = class {
       }
       this.buttons.push(new CC.Button({ id: 'upgrade', x: 30, y: 664, w: 480, h: 64, label: 'UPGRADE BAY', icon: 'CC_DockRush_UI_Icon_Upgrade_v1', kind: 'ghost', onTap: () => this.g.go('SCR_Upgrade') }));
       // a friend's challenge takes over PLAY (any dock, no unlock skip) until it is beaten or dismissed
+      // one-tap mute chip (full toggle lives in Settings)
+      const s = p.settings;
+      this.buttons.push(new CC.Button({ id: 'mute', x: 20, y: 16, w: 74, h: 32, label: s.audio ? '♪ ON' : '♪ OFF', size: 11, kind: s.audio ? 'ghost' : 'danger', onTap: () => { s.audio = !s.audio; this.g.save.save(); this.g.applySettings(); this.buildButtons(); } }));
       if (ch) {
         this.buttons.push(new CC.Button({ id: 'play', x: 30, y: 744, w: 480, h: 84, label: `PLAY DOCK ${CC.U.pad2(ch.n)}`, sub: `friend's challenge · beat ${ch.score}`, size: 26, kind: 'good', onTap: () => this.g.go('SCR_DockBrief', { levelN: ch.n }) }));
-        this.buttons.push(new CC.Button({ id: 'challenge_dismiss', x: 20, y: 16, w: 124, h: 32, label: '✕ CHALLENGE', size: 11, kind: 'ghost', onTap: () => { p.challenge = null; this.g.save.save(); this.buildButtons(); } }));
+        this.buttons.push(new CC.Button({ id: 'challenge_dismiss', x: 102, y: 16, w: 124, h: 32, label: '✕ CHALLENGE', size: 11, kind: 'ghost', onTap: () => { p.challenge = null; this.g.save.save(); this.buildButtons(); } }));
       } else {
         this.buttons.push(new CC.Button({ id: 'play', x: 30, y: 744, w: 480, h: 84, label: `PLAY DOCK ${CC.U.pad2(next)}`, sub: 'smash → sort → truck', size: 26, onTap: () => this.g.go('SCR_DockBrief', { levelN: next }) }));
       }
     } else if (this.tab === 'settings') {
       const s = p.settings;
       const row = (i, id, label, val, fn) => this.buttons.push(new CC.Button({ id, x: 30, y: 160 + i * 84, w: 480, h: 64, label: `${label}: ${val ? 'ON' : 'OFF'}`, size: 20, kind: val ? 'good' : 'ghost', onTap: fn }));
-      row(0, 'audio', 'AUDIO (default off for capture)', s.audio, () => { s.audio = !s.audio; this.g.save.save(); this.g.applySettings(); this.buildButtons(); });
+      row(0, 'audio', 'AUDIO (SFX + groove; capture preset mutes)', s.audio, () => { s.audio = !s.audio; this.g.save.save(); this.g.applySettings(); this.buildButtons(); });
       row(1, 'haptics', 'HAPTICS', s.haptics, () => { s.haptics = !s.haptics; this.g.save.save(); this.g.applySettings(); this.buildButtons(); });
       row(2, 'capture', 'CAPTURE PRESET (min chrome, big FX)', s.capture, () => { s.capture = !s.capture; this.g.save.save(); this.g.applySettings(); this.buildButtons(); });
       this.buttons.push(new CC.Button({ id: 'sheet', x: 30, y: 500, w: 480, h: 56, label: 'ASSET SHEET (silhouette test)', size: 16, kind: 'ghost', onTap: () => this.g.go('SCR_AssetSheet') }));

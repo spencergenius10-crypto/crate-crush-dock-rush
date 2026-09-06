@@ -71,7 +71,7 @@ CC.OverlayResults = class {
   share(kind) {
     if (this.sharing) return;
     this.sharing = true;
-    this.g.audio.chime(0); // Kade audio — share button
+    this.g.audio.chime(0); // audio hook: share button
     const ch = this.payload();
     const url = CC.Share.challengeURL(ch);
     const payload = { title: 'Crate Crush: Dock Rush', text: CC.Share.text(kind, ch), url };

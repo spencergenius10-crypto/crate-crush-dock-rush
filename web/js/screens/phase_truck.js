@@ -38,11 +38,11 @@ CC.PhaseTruck = class {
         const f = this.flyers[j]; f.k += dt / 0.3;
         if (f.k >= 1) {
           this.flyers.splice(j, 1); this.filled++;
-          this.g.fx.doShake(1.5); this.g.audio.thud(); // Kade audio (truck load thud)
+          this.g.fx.doShake(1.5); this.g.audio.thud(); // audio hook: truck load thud
           if (this.filled >= this.total) {
             this.state = 'full'; this.fullT = 0; this.run.ftueText = null;
             this.g.fx.sting(T.x + T.w / 2, T.y + T.h / 2);
-            this.g.audio.sting(); // Kade audio (truck clear whoosh/sting)
+            this.g.audio.sting(); // audio hook: truck clear sting + whoosh
             this.g.audio.whoosh();
           }
         }

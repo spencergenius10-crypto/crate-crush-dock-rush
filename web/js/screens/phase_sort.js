@@ -57,7 +57,7 @@ CC.PhaseSort = class {
     a.vx = vx * this.flingMul; a.vy = vy * this.flingMul;
     if (a.vy < -900) a.vy = -900;
     a.state = 'fly'; this.grabbed = false; this.highlightLane = null;
-    this.g.audio.whoosh(); // Kade audio
+    this.g.audio.whoosh(); // audio hook: fling whoosh
   }
   dropAt(px) {
     // drop where the finger is, not where the lagging cargo sprite is
@@ -75,7 +75,7 @@ CC.PhaseSort = class {
     const g = CC.CONFIG.GRAVITY;
     const vx = (tx - a.x) / T, vy = (ty - a.y) / T - 0.5 * g * T;
     a.vx = vx; a.vy = vy; a.state = 'fly'; this.grabbed = false; this.highlightLane = null;
-    this.g.audio.whoosh(); // Kade audio
+    this.g.audio.whoosh(); // audio hook: fling whoosh
     return true;
   }
 
@@ -141,8 +141,7 @@ CC.PhaseSort = class {
     run.stats.sorted++;
     lane.flashT = 0.35;
     this.g.fx.accept(a.x, lane.y, a.golden ? '#ffd65a' : a.type.color);
-    this.g.audio.pop();
-    this.g.audio.snap(perfect); // Kade audio
+    this.g.audio.snap(perfect); // audio hook: bin clack / perfect ting
     this.g.sessionHints.sort = true;
     run.ftueDone('sort');
     // score: base 10 × fever multiplier, ×3 for golden, +5 perfect; fever builds on every good sort
@@ -158,7 +157,7 @@ CC.PhaseSort = class {
       const pct = CC.ECON.streakBonusPct(s);
       this.g.fx.floatText(a.x, lane.y - 50, `STREAK ${s} · +${pct}%`, C.Warn, 24, { punch: 1 });
       this.g.fx.hapticStreak(s / CC.ECON.STREAK_STEP_SORTS);
-      this.g.audio.chime(s / CC.ECON.STREAK_STEP_SORTS); // Kade audio — escalating combo chime
+      this.g.audio.chime(s / CC.ECON.STREAK_STEP_SORTS); // audio hook: escalating combo chime
     } else if (s >= 2 && !perfect) this.g.fx.hapticStreak(0);
     this.seatAnims.push({ type: a.type, x: a.x, y: lane.y, lane, t: 0, golden: a.golden });
     this.active = null;
@@ -178,8 +177,7 @@ CC.PhaseSort = class {
     run.feverMiss();
     this.g.fx.spill(a.x, lane ? lane.y + 4 : a.y);
     if (hazard === 'unstable') { this.g.fx.smashBurst(a.x, a.y, C.Fail, true); this.g.fx.splinters(a.x - 20, a.y - 20, 40, 40, [C.Fail, '#ffd65a', '#1a1d24'], 8, CC.CONFIG.LANES.y + 20); }
-    this.g.audio.splat();
-    this.g.audio.error(hazard || (lane ? 'wrong_lane' : 'spill')); // Kade audio
+    this.g.audio.error(hazard || (lane ? 'wrong_lane' : 'spill')); // audio hook: crisp error thud (+buzz when unstable)
     if (lane) lane.flashT = 0.2;
     this.spilled.push({ type: a.type, x: a.x, y: lane ? lane.y + 6 : a.y, t: 0 });
     // spilled cargo goes back on the pile — spills cost lives/time, not completeness (a detonated piece comes back stable)
