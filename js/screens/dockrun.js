@@ -14,10 +14,12 @@ CC.DockRunScreen = class {
     this.attempt_n = p.attempts[this.levelId];
     g.tlm.dockAttempt();
 
-    this.stats = { smashed: 0, misses: 0, streak: 0, bestStreak: 0, spills: 0, sorted: 0, revives: 0, shieldUsed: false, doubled: false, score: 0, golden: 0, timedSpills: 0, feverPeak: 0 };
+    this.stats = { smashed: 0, misses: 0, streak: 0, bestStreak: 0, spills: 0, sorted: 0, revives: 0, shieldUsed: false, doubled: false, score: 0, golden: 0, timedSpills: 0, feverPeak: 0,
+      events: 0, jackpots: 0, steelHeaved: 0, magnetSnaps: 0, glassShattered: 0 };
     // Flow / Fever: 0..1, builds on good play, decays on idle / halves on a miss. Tier → score multiplier.
     this.fever = 0; this.feverTier = 0; this.feverFlashT = 0;
-    this.cargoTotal = this.lv.crates * this.lv.cargoPerCrate;
+    this.grooveT = 0;
+    this.inspection = false;
     this.cargoQueue = [];
     this.timerMax = this.lv.timer;
     this.timer = this.lv.timer;
@@ -34,9 +36,12 @@ CC.DockRunScreen = class {
     this.smash = new CC.PhaseSmash(this);
     this.sort = new CC.PhaseSort(this);
     this.truck = new CC.PhaseTruck(this);
+    this.events = new CC.RoundEvents(this);
+    // a jackpot crate carries extra cargo, so the dock total comes from the crates actually built
+    this.cargoTotal = this.smash.crates.reduce((n, c) => n + c.cargo.length, 0);
     this.setPhase('smash');
   }
-  exit() { this.overlay = null; }
+  exit() { this.overlay = null; this.g.audio.grooveIntensity(0); } // Kade audio
 
   // ---------- lanes (CC_Lane_*) ----------
   buildLanes() {
@@ -47,8 +52,16 @@ CC.DockRunScreen = class {
     this.lanes = [];
     for (let i = 0; i < n; i++) {
       const laneTypes = i === n - 1 ? types.slice(i) : [types[i]];
-      this.lanes.push({ idx: i, id: 'lane_' + (i + 1), x: L.x + i * (w + gap), y: L.y, w, h: L.h, types: laneTypes, activeIdx: 0, fill: 0, seated: [], flashT: 0, swapT: 0 });
+      const x = L.x + i * (w + gap);
+      this.lanes.push({ idx: i, id: 'lane_' + (i + 1), x, homeX: x, targetX: x, y: L.y, w, h: L.h, types: laneTypes, activeIdx: 0, fill: 0, seated: [], flashT: 0, swapT: 0 });
     }
+  }
+  // Inspection Shift: lanes rotate one slot (2 lanes = swap) and every colour mutes; off = slide back home.
+  // Lane identity (idx/id/types/seated) never changes — only where it sits — so telemetry bins stay stable.
+  setInspection(on) {
+    this.inspection = !!on;
+    const n = this.lanes.length;
+    for (const l of this.lanes) { l.fromX = l.x; l.moveT = 0; l.targetX = on && n > 1 ? this.lanes[(l.idx + 1) % n].homeX : l.homeX; }
   }
   laneCurrent(lane) { return lane.types[lane.activeIdx]; }
   laneAccepts(lane, type) { return this.laneCurrent(lane).id === type.id; }
@@ -175,7 +188,12 @@ CC.DockRunScreen = class {
   update(dt) {
     this.t += dt;
     this.phaseSwapT += dt;
-    for (const l of this.lanes) l.flashT = Math.max(0, l.flashT - dt);
+    // Inspection Shift lane slide: timed ease-out tween so lanes land exactly on their slot
+    const animS = CC.CONFIG.EVENTS.inspection.swapAnimS;
+    for (const l of this.lanes) {
+      l.flashT = Math.max(0, l.flashT - dt);
+      if (l.x !== l.targetX) { l.moveT = Math.min(animS, (l.moveT || 0) + dt); l.x = CC.U.lerp(l.fromX, l.targetX, CC.U.easeOutCubic(l.moveT / animS)); }
+    }
     if (this.overlay) { this.overlay.update(dt); return; }
     this.elapsed += dt;
     this.feverFlashT = Math.max(0, this.feverFlashT - dt);
@@ -183,7 +201,11 @@ CC.DockRunScreen = class {
       this.timer -= dt;
       if (this.timer <= 0) { this.timer = 0; this.softFail('timer'); return; }
       this.feverUpdate(dt); // fever only bleeds while the player is on the clock
+      this.events.update(dt);
     }
+    // groove intensity: fever value, lifted during Rush Hour — throttled so the audio side gets ~4 updates/s
+    this.grooveT += dt;
+    if (this.grooveT >= 0.25) { this.grooveT = 0; this.g.audio.grooveIntensity(Math.min(1, this.fever + (this.sort.rush ? 0.25 : 0))); } // Kade audio
     this.phase.update(dt);
   }
 
@@ -216,6 +238,7 @@ CC.DockRunScreen = class {
     // lanes are always on stage (dimmed in Smash) — same camera
     this.drawLanes(ctx);
     this.phase.draw(ctx);
+    this.events.draw(ctx);
     this.drawHUD(ctx);
     this.g.fx.draw(ctx); // world FX sit under overlays (drawsFX = true)
     if (this.overlay) this.overlay.draw(ctx);
@@ -238,12 +261,14 @@ CC.DockRunScreen = class {
       }
       ctx.globalAlpha = 1;
     }
+    const mute = this.inspection ? CC.CONFIG.EVENTS.inspection.mute : 0;
     for (const l of this.lanes) {
       const type = this.laneCurrent(l);
       const hl = this.sort.highlightLane === l;
+      const col = mute ? CC.U.desat(type.color, mute) : type.color;
       CC.drawAsset('CC_DockRush_Lane_Base_v1', ctx, l.x, l.y, l.w, l.h, { floor: hl ? CC.U.desat(type.color, 0.7) : tier >= 2 ? CC.U.desat(this.feverColor(), 0.85) : null });
-      CC.drawAsset('CC_DockRush_Lane_Rim_v1', ctx, l.x, l.y, l.w, l.h, { color: type.color, type });
-      if (l.flashT > 0) { ctx.globalAlpha = l.flashT * 2; ctx.fillStyle = type.color; ctx.fillRect(l.x, l.y - 8, l.w, l.h + 8); ctx.globalAlpha = active ? 1 : 0.55; }
+      CC.drawAsset('CC_DockRush_Lane_Rim_v1', ctx, l.x, l.y, l.w, l.h, { color: col, type, mute });
+      if (l.flashT > 0) { ctx.globalAlpha = l.flashT * 2; ctx.fillStyle = col; ctx.fillRect(l.x, l.y - 8, l.w, l.h + 8); ctx.globalAlpha = active ? 1 : 0.55; }
       // seated cargo (Lane seat state)
       const cols = Math.max(2, Math.floor(l.w / 44));
       l.seated.forEach((s, i) => {
@@ -253,7 +278,7 @@ CC.DockRunScreen = class {
       });
       // fill meter (ratio from systems: seated / expected of this lane)
       const exp = this.laneExpected(l);
-      CC.drawAsset('CC_DockRush_Lane_FillMeter_v1', ctx, l.x + l.w - 14, l.y + 14, 8, l.h - 28, { ratio: exp ? l.seated.length / exp : 0, color: type.color });
+      CC.drawAsset('CC_DockRush_Lane_FillMeter_v1', ctx, l.x + l.w - 14, l.y + 14, 8, l.h - 28, { ratio: exp ? l.seated.length / exp : 0, color: col });
       // swap-lane indicator
       if (l.types.length > 1) {
         const k = 1 - (l.swapT / this.sort.swapPeriod(l));
@@ -277,7 +302,10 @@ CC.DockRunScreen = class {
   // Feel-system telemetry (additive props on dock_clear / dock_fail; not part of the must-ship contract)
   feelProps() {
     const s = this.stats;
-    return { run_score: s.score, fever_peak_tier: s.feverPeak, golden_sorted: s.golden, unstable_detonated: s.timedSpills };
+    return {
+      run_score: s.score, fever_peak_tier: s.feverPeak, golden_sorted: s.golden, unstable_detonated: s.timedSpills,
+      round_events: s.events, jackpots: s.jackpots, steel_heaved: s.steelHeaved, magnet_snaps: s.magnetSnaps, glass_shattered: s.glassShattered,
+    };
   }
 
   // Challenge link context for this dock (friend's target), or null. Extra telemetry props only.

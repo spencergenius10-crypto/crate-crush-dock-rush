@@ -38,6 +38,56 @@ window.CC = window.CC || {};
     ctx.strokeStyle = C.Outline; ctx.lineWidth = 3; ctx.strokeRect(x, y, w, h);
   } };
 
+  A['CC_DockRush_Crate_Steel_Weighted_v1'] = { cat: 'Crate', draw(ctx, x, y, w, h, o) {
+    // weighted steel: dark slab, three weight plates, kettlebell glyph; o.lift 0..1 = lift meter (bar under the crate)
+    const lift = (o && o.lift) || 0;
+    ctx.fillStyle = '#4a5261'; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = '#2f3540'; ctx.fillRect(x, y, w, 8); ctx.fillRect(x, y + h - 8, w, 8);
+    ctx.fillStyle = U.shade('#4a5261', 0.25); ctx.fillRect(x + 8, y + 12, w - 16, 3);
+    // weight plates
+    ctx.fillStyle = '#20252d'; ctx.strokeStyle = C.Outline; ctx.lineWidth = 2;
+    for (let i = 0; i < 3; i++) { const px = x + w * (0.18 + i * 0.24), pw = w * 0.16; ctx.fillRect(px, y + h * 0.3, pw, h * 0.42); ctx.strokeRect(px, y + h * 0.3, pw, h * 0.42); }
+    // handle
+    ctx.strokeStyle = '#8d97a8'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(x + w / 2, y + h * 0.3, w * 0.16, Math.PI, 0); ctx.stroke();
+    ctx.strokeStyle = C.Outline; ctx.lineWidth = 3; ctx.strokeRect(x, y, w, h);
+    // "tap tap tap" glyph — three dots so the rule reads without color
+    ctx.fillStyle = C.Text_Primary; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(x + w * (0.66 + i * 0.12), y + h * 0.86, 3.5, 0, Math.PI * 2); ctx.fill(); }
+    if (lift > 0) {
+      U.fillRRect(ctx, x + 6, y + h + 6, w - 12, 7, 3, C.BG_UI);
+      U.fillRRect(ctx, x + 7, y + h + 7, (w - 14) * lift, 5, 2, lift > 0.75 ? C.Safe : C.Warn);
+      U.strokeRRect(ctx, x + 6, y + h + 6, w - 12, 7, 3, C.Outline, 1.5);
+    }
+  } };
+  A['CC_DockRush_Crate_Jackpot_v1'] = { cat: 'Crate', draw(ctx, x, y, w, h, o) {
+    // rare jackpot crate: gold-banded, star badge, slow glint; reads as "priority" in 1-bit via the star silhouette
+    const t = (o && o.t) || 0;
+    ctx.fillStyle = '#d9a13a'; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = '#8a5f14'; ctx.fillRect(x, y + h * 0.3, w, 5); ctx.fillRect(x, y + h * 0.66, w, 5);
+    ctx.fillStyle = '#ffe6a3'; ctx.fillRect(x + 4, y + 4, w - 8, 5);
+    ctx.fillStyle = '#5a3d0a'; ctx.fillRect(x + w * 0.42, y, w * 0.16, h);
+    ctx.strokeStyle = C.Outline; ctx.lineWidth = 3; ctx.strokeRect(x, y, w, h);
+    // star badge
+    const cx = x + w / 2, cy = y + h / 2, r = w * 0.2;
+    ctx.fillStyle = '#fff6c8'; ctx.strokeStyle = C.Outline; ctx.lineWidth = 2; ctx.beginPath();
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5, rr = i % 2 ? r * 0.45 : r; i ? ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr) : ctx.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // glint sweep
+    const gx = x + ((t * 60) % (w + 30)) - 15;
+    ctx.globalAlpha = 0.35; ctx.fillStyle = '#fff'; ctx.fillRect(gx, y, 6, h); ctx.globalAlpha = 1;
+  } };
+  A['CC_DockRush_Crate_Magnet_Plate_v1'] = { cat: 'Crate', draw(ctx, x, y, w, h) {
+    // horseshoe magnet plate riveted on a crate corner: red/blue poles, silver tips
+    const px = x + w * 0.6, py = y + h * 0.08, pw = w * 0.34, ph = h * 0.36;
+    U.fillRRect(ctx, px, py, pw, ph, 4, '#20252d'); U.strokeRRect(ctx, px, py, pw, ph, 4, C.Outline, 2);
+    const cx = px + pw / 2, cy = py + ph * 0.42, r = pw * 0.3;
+    ctx.lineWidth = Math.max(4, pw * 0.22); ctx.lineCap = 'butt';
+    ctx.strokeStyle = '#e04848'; ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI, Math.PI * 1.5); ctx.stroke();
+    ctx.strokeStyle = '#3d8bfd'; ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI * 1.5, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#e04848'; ctx.fillRect(cx - r - ctx.lineWidth / 2, cy, ctx.lineWidth, ph * 0.3);
+    ctx.fillStyle = '#3d8bfd'; ctx.fillRect(cx + r - ctx.lineWidth / 2, cy, ctx.lineWidth, ph * 0.3);
+    ctx.fillStyle = '#e9edf3'; ctx.fillRect(cx - r - ctx.lineWidth / 2, cy + ph * 0.3, ctx.lineWidth, 4); ctx.fillRect(cx + r - ctx.lineWidth / 2, cy + ph * 0.3, ctx.lineWidth, 4);
+  } };
+
   A['CC_DockRush_Crate_Frozen_Shell_v1'] = { cat: 'Crate', draw(ctx, x, y, w, h, o) {
     // ice shell over any crate: pale-blue translucent slab + cracks; o.cracked after the first tap
     ctx.fillStyle = 'rgba(160,220,255,0.55)'; U.rrect(ctx, x - 3, y - 3, w + 6, h + 6, 8); ctx.fill();
@@ -76,7 +126,7 @@ window.CC = window.CC || {};
     // plaque
     const pw = Math.min(64, w - 16), ph = 54, px = x + w / 2 - pw / 2, py = y + h * 0.35;
     U.fillRRect(ctx, px, py, pw, ph, 8, C.BG_UI); U.strokeRRect(ctx, px, py, pw, ph, 8, rim, 3);
-    if (o && o.type) CC.drawCargo(ctx, o.type, px + pw / 2, py + ph / 2, 30, 'idle');
+    if (o && o.type) CC.drawCargo(ctx, o.type, px + pw / 2, py + ph / 2, 30, 'idle', { mute: o.mute || 0 });
   } };
   A['CC_DockRush_Lane_FillMeter_v1'] = { cat: 'Lane', draw(ctx, x, y, w, h, o) {
     const ratio = o && o.ratio != null ? o.ratio : 0.5;
