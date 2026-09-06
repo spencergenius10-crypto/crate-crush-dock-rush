@@ -1,0 +1,31 @@
+table,key,level_or_band,cost_coins,cumulative_coins,expected_coins_per_dock,notes
+coins_per_dock,D01-D05,early_ftue,,132,120 base +streak
+coins_per_dock,D06-D12,early_climb,,157,
+coins_per_dock,D13-D20,early_mid,,174,
+coins_per_dock,D21-D35,mid,,196,
+coins_per_dock,D36-D50,mid_deep,,213,
+upg_smash,1_to_2,2,200,200,faster smash resolve
+upg_smash,2_to_3,3,350,550,
+upg_smash,3_to_4,4,550,1100,
+upg_smash,4_to_5,5,800,1900,mid unlock feel
+upg_smash,5_to_6,6,1200,3100,
+upg_smash,6_to_7,7,1700,4800,
+upg_smash,7_to_8,8,2400,7200,
+upg_smash,8_to_9,9,3200,10400,
+upg_smash,9_to_10,10,4200,14600,soft cap early
+upg_lanes,2_to_3,3,500,500,start at 2 lanes
+upg_lanes,3_to_4,4,1500,2000,
+upg_lanes,4_to_5,5,4000,6000,mid sink
+upg_sort,1_to_2,2,180,180,
+upg_sort,2_to_3,3,300,480,
+upg_sort,3_to_4,4,480,960,
+upg_sort,4_to_5,5,750,1710,
+upg_sort,5_to_6,6,1100,2810,
+upg_sort,6_to_7,7,1600,4410,
+upg_sort,7_to_8,8,2300,6710,
+talent,filter_glove,ftue,0,0,free after D03
+talent,bounce_dampen,smash_lv3,900,900,
+talent,spill_magnet,lanes_ge3,1800,1800,
+talent,streak_shield,sort_lv4,2500,2500,
+talent,idle_cap_plus1h,tier1,1200,1200,
+revive,coin_revive,per_level,0.35*expected,,round to 10
