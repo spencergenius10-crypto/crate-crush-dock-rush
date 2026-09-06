@@ -1,10 +1,36 @@
 /* App root: screen manager + fixed-step loop. Screen IDs are Vale-canonical (SCR_*). */
 window.CC = window.CC || {};
 
+// Dev tooling (asset sheet, acceptance bot, dev panel) is not on the player's critical path: it is
+// fetched on demand (?dev / ?bot / ?sheet, DEV button, ` key). The build swaps the list for one minified chunk.
+CC.DEV_SCRIPTS = ['js/dev/sheet.js', 'js/dev/bot.js', 'js/dev/devpanel.js'];
+CC.loadDev = function (cb) {
+  if (CC.DevPanel) { cb && cb(); return; }
+  if (CC._devLoading) { CC._devLoading.push(cb); return; }
+  CC._devLoading = [cb];
+  const srcs = window.CC_DEV_BUNDLE ? [window.CC_DEV_BUNDLE] : CC.DEV_SCRIPTS;
+  let i = 0;
+  const next = () => {
+    if (i >= srcs.length) {
+      if (CC.game && !CC.dev) CC.dev = new CC.DevPanel(CC.game);
+      const q = CC._devLoading; CC._devLoading = null;
+      for (const f of q) f && f();
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = srcs[i++]; s.async = false; s.onload = next;
+    s.onerror = () => { console.error('[CC] dev chunk failed', s.src); CC._devLoading = null; };
+    document.body.appendChild(s);
+  };
+  next();
+};
+
 CC.Game = class {
   constructor(canvas) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
+    // alpha:false → opaque backing store (every screen paints the full stage); desynchronized → lets the
+    // browser present the canvas outside the compositor queue for lower touch→pixel latency where supported.
+    this.ctx = canvas.getContext('2d', { alpha: false, desynchronized: !CC.U.query('nodesync') });
     this.fx = new CC.FX();
     this.audio = new CC.Audio();
     this.tlm = new CC.Telemetry();
@@ -17,8 +43,8 @@ CC.Game = class {
       SCR_DockBrief: new CC.DockBriefScreen(this),
       DockRun: new CC.DockRunScreen(this),
       SCR_Upgrade: new CC.UpgradeScreen(this),
-      SCR_AssetSheet: new CC.AssetSheetScreen(this),
     };
+    this.lazyScreens = { SCR_AssetSheet: () => new CC.AssetSheetScreen(this) };
     this.current = null; this.currentId = null;
     this.last = performance.now();
     this.time = 0;
@@ -26,15 +52,29 @@ CC.Game = class {
     this.resize();
     window.addEventListener('resize', () => this.resize());
 
+    // inbound Challenge link → pin it to the profile so it survives Boot → Hub (and a reload)
+    if (CC.inboundChallenge) {
+      const ch = CC.inboundChallenge;
+      this.p.challenge = ch; this.save.save();
+    }
+
     // session lifecycle: new session_id on every cold/warm start
     this.tlm.startSession(true);
+    if (CC.inboundChallenge) this.tlm.challengeOpen({ level_id: CC.inboundChallenge.level_id, target_score: CC.inboundChallenge.score, fresh_install: this.tlm.events.some((e) => e.event_name === 'install') });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') this.tlm.endSession('background');
       else if (this.tlm.ended) this.tlm.startSession(false);
     });
     window.addEventListener('pagehide', () => this.tlm.endSession('pagehide'));
 
-    window.addEventListener('keydown', (e) => { if (e.key === '`' || e.key === '~') CC.dev && CC.dev.toggle(); });
+    window.addEventListener('keydown', (e) => { if (e.key === '`' || e.key === '~') this.toggleDev(); });
+    const devBtn = document.getElementById('devToggle');
+    if (devBtn) devBtn.addEventListener('click', () => this.toggleDev());
+  }
+
+  toggleDev() {
+    const had = !!CC.dev;
+    CC.loadDev(() => { if (CC.dev && (had || !CC.dev.visible)) CC.dev.toggle(); });
   }
 
   get p() { return this.save.p; }
@@ -50,9 +90,14 @@ CC.Game = class {
     const s = Math.min(vw / CC.CONFIG.W, vh / CC.CONFIG.H);
     this.canvas.style.width = Math.floor(CC.CONFIG.W * s) + 'px';
     this.canvas.style.height = Math.floor(CC.CONFIG.H * s) + 'px';
+    if (this.input) this.input.invalidateRect();
   }
 
   go(id, params) {
+    if (!this.screens[id] && this.lazyScreens[id]) {
+      CC.loadDev(() => { this.screens[id] = this.lazyScreens[id](); this.go(id, params); });
+      return;
+    }
     if (this.current && this.current.exit) this.current.exit();
     this.fx.texts.length = 0; this.fx.particles.length = 0;
     this.currentId = id;
@@ -72,7 +117,7 @@ CC.Game = class {
   start() {
     const sheet = CC.U.query('sheet');
     this.go(sheet ? 'SCR_AssetSheet' : 'SCR_Boot');
-    if (CC.U.query('bot')) this.bot = new CC.Bot(this, { autodownload: !!CC.U.query('autodownload') });
+    if (CC.U.query('bot')) CC.loadDev(() => { this.bot = new CC.Bot(this, { autodownload: !!CC.U.query('autodownload') }); });
     requestAnimationFrame((t) => this.frame(t));
   }
 
@@ -106,8 +151,11 @@ CC.Game = class {
 
 window.addEventListener('DOMContentLoaded', () => {
   if (CC.U.query('reset')) { try { localStorage.clear(); } catch (_) {} }
+  // consume the hash before telemetry starts so a first open via a friend's link attributes `install`
+  CC.inboundChallenge = CC.Share.parseInbound();
   const canvas = document.getElementById('game');
   CC.game = new CC.Game(canvas);
-  CC.dev = new CC.DevPanel(CC.game);
-  CC.game.start();
+  const wantsDev = CC.U.query('dev') || CC.U.query('bot') || CC.U.query('sheet');
+  if (wantsDev) CC.loadDev(() => CC.game.start());
+  else CC.game.start();
 });

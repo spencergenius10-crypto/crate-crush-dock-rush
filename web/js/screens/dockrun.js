@@ -101,23 +101,23 @@ CC.DockRunScreen = class {
     if (CC.dev) CC.dev.refresh();
   }
   onReviveDecline() {
-    this.g.tlm.dockFail({
+    this.g.tlm.dockFail(Object.assign({
       level_id: this.levelId, attempt_n: this.attempt_n, duration_s: Math.round(this.elapsed),
       fail_reason: this.failReason || 'other', crates_smashed: this.stats.smashed, sort_misses: this.stats.misses,
       progress_pct: this.progressPct(),
-    });
+    }, this.challengeProps()));
     this.g.p.stats.docks_failed++; this.g.save.save();
     this.showResults(false);
   }
   onTruckFull() {
     const p = this.g.p;
     const isFirst = !p.cleared[this.levelId];
-    this.g.tlm.dockClear({
+    this.g.tlm.dockClear(Object.assign({
       level_id: this.levelId, attempt_n: this.attempt_n, duration_s: Math.round(this.elapsed),
       crates_smashed: this.stats.smashed, sort_misses: this.stats.misses,
       stars: this.stats.misses === 0 ? 3 : this.stats.misses <= 2 ? 2 : 1,
       difficulty_tier: this.lv.difficulty_tier, is_first_clear: isFirst,
-    });
+    }, this.challengeProps()));
     this.ftueDone('truck');
     this.showResults(true);
   }
@@ -213,10 +213,20 @@ CC.DockRunScreen = class {
     ctx.restore();
   }
   laneExpected(l) {
-    // total cargo of this lane's types on the dock
-    let n = 0;
-    for (const c of this.smash.crates) for (const t of c.cargo) if (l.types.some((x) => x.id === t.id)) n++;
-    return n;
+    // total cargo of this lane's types on the dock — fixed once crates are built, so compute once per run
+    if (l.expected == null) {
+      let n = 0;
+      for (const c of this.smash.crates) for (const t of c.cargo) if (l.types.some((x) => x.id === t.id)) n++;
+      l.expected = n;
+    }
+    return l.expected;
+  }
+
+  // Challenge link context for this dock (friend's target), or null. Extra telemetry props only.
+  challengeProps() {
+    const ch = this.g.p.challenge;
+    if (!ch || ch.n !== this.lv.n) return {};
+    return { challenge_target: ch.score };
   }
 
   drawHUD(ctx) {

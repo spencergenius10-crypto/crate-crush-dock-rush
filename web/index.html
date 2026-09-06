@@ -4,7 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <title>Crate Crush: Dock Rush — WebGL Prototype</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#12151b" />
+  <meta name="description" content="Smash crates, sort cargo, fill the truck. Free browser game — no install, no ads." />
+  <meta property="og:title" content="Crate Crush: Dock Rush" />
+  <meta property="og:description" content="Smash → sort → truck. Beat my haul score — play free in your browser." />
+  <meta property="og:type" content="website" />
+  <title>Crate Crush: Dock Rush</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -12,41 +19,40 @@
     <canvas id="game" width="540" height="960" aria-label="Crate Crush: Dock Rush"></canvas>
   </div>
 
-  <!-- DOM dev tooling lives outside the game canvas; never drawn mid Smash/Sort -->
+  <!-- DOM dev tooling lives outside the game canvas; never drawn mid Smash/Sort. Panel code is lazy-loaded. -->
   <button id="devToggle" type="button" title="Dev / telemetry panel (~)">DEV</button>
   <div id="devPanel" class="hidden"></div>
 
+  <!-- `defer` keeps HTML/CSS parsing unblocked and preserves this order; tools/build.mjs bundles the list into one file -->
   <!-- core -->
-  <script src="js/core/config.js"></script>
-  <script src="js/core/util.js"></script>
-  <script src="js/core/input.js"></script>
-  <script src="js/core/fx.js"></script>
-  <script src="js/core/audio.js"></script>
-  <script src="js/core/telemetry.js"></script>
-  <script src="js/core/save.js"></script>
+  <script defer src="js/core/config.js"></script>
+  <script defer src="js/core/util.js"></script>
+  <script defer src="js/core/input.js"></script>
+  <script defer src="js/core/fx.js"></script>
+  <script defer src="js/core/audio.js"></script>
+  <script defer src="js/core/telemetry.js"></script>
+  <script defer src="js/core/save.js"></script>
+  <script defer src="js/core/share.js"></script>
   <!-- data -->
-  <script src="js/data/economy.js"></script>
-  <script src="js/data/cargo.js"></script>
-  <script src="js/data/levels.js"></script>
-  <script src="js/data/assets.js"></script>
+  <script defer src="js/data/economy.js"></script>
+  <script defer src="js/data/cargo.js"></script>
+  <script defer src="js/data/levels.js"></script>
+  <script defer src="js/data/assets.js"></script>
   <!-- ui -->
-  <script src="js/ui/widgets.js"></script>
+  <script defer src="js/ui/widgets.js"></script>
   <!-- screens -->
-  <script src="js/screens/boot.js"></script>
-  <script src="js/screens/hub.js"></script>
-  <script src="js/screens/dockbrief.js"></script>
-  <script src="js/screens/phase_smash.js"></script>
-  <script src="js/screens/phase_sort.js"></script>
-  <script src="js/screens/phase_truck.js"></script>
-  <script src="js/screens/overlay_revive.js"></script>
-  <script src="js/screens/overlay_results.js"></script>
-  <script src="js/screens/dockrun.js"></script>
-  <script src="js/screens/upgrade.js"></script>
-  <!-- dev -->
-  <script src="js/dev/sheet.js"></script>
-  <script src="js/dev/bot.js"></script>
-  <script src="js/dev/devpanel.js"></script>
+  <script defer src="js/screens/boot.js"></script>
+  <script defer src="js/screens/hub.js"></script>
+  <script defer src="js/screens/dockbrief.js"></script>
+  <script defer src="js/screens/phase_smash.js"></script>
+  <script defer src="js/screens/phase_sort.js"></script>
+  <script defer src="js/screens/phase_truck.js"></script>
+  <script defer src="js/screens/overlay_revive.js"></script>
+  <script defer src="js/screens/overlay_results.js"></script>
+  <script defer src="js/screens/dockrun.js"></script>
+  <script defer src="js/screens/upgrade.js"></script>
+  <!-- dev chunk (js/dev/*) is loaded on demand by CC.loadDev — see main.js -->
   <!-- boot -->
-  <script src="js/main.js"></script>
+  <script defer src="js/main.js"></script>
 </body>
 </html>

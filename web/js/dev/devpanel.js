@@ -5,8 +5,7 @@ CC.DevPanel = class {
   constructor(g) {
     this.g = g;
     this.el = document.getElementById('devPanel');
-    this.toggleBtn = document.getElementById('devToggle');
-    this.toggleBtn.addEventListener('click', () => this.toggle());
+    // the DEV button / ` key are wired in main.js (they lazy-load this chunk first)
     this.el.addEventListener('click', (e) => {
       const act = e.target && e.target.getAttribute('data-act');
       if (act) this.action(act);
@@ -31,6 +30,7 @@ CC.DevPanel = class {
       case 'sheet': g.go('SCR_AssetSheet'); break;
       case 'hub': g.go('SCR_Hub'); break;
       case 'copy': navigator.clipboard && navigator.clipboard.writeText(g.tlm.toJSONL(true)); break;
+      case 'challenge_link': location.href = location.pathname + location.search + '#challenge=' + CC.Share.encode({ n: 3, score: 250, streak: 5, time: 30, cleared: true }); location.reload(); break;
     }
     this.refresh();
   }
@@ -63,10 +63,12 @@ CC.DevPanel = class {
         <button data-act="freeze">${g.freezeTimer ? 'Timer: FROZEN (capture)' : 'Freeze timer (capture)'}</button>
         <button data-act="hub">→ Hub</button>
         <button data-act="sheet">Asset sheet</button>
+        <button data-act="challenge_link">Open test challenge link (D03 · 250)</button>
         <button data-act="reset">Reset (fresh install)</button>
       </div>
       <div class="muted">coins ${g.p.coins} · smash Lv${g.p.upg_smash} · lanes ${g.p.upg_lanes} · sort Lv${g.p.upg_sort} · next D${CC.U.pad2(g.p.nextLevel)}</div>
       <div class="muted">input: ${g.input.down ? 'DOWN' : 'up'} · last ${g.input.lastEvent} · ${Math.round(g.input.x)},${Math.round(g.input.y)}${g.lastErr ? ' · <span style="color:#ff7b7b">frame error: ' + String(g.lastErr).replace(/</g, '&lt;').slice(0, 80) + '</span>' : ''}</div>
+      <div class="muted">latency: event→handler ${g.input.lat.age.toFixed(1)}ms (worst ${g.input.lat.worstAge.toFixed(1)}) · handler ${g.input.lat.handler.toFixed(2)}ms (worst ${g.input.lat.worstHandler.toFixed(2)}) · ${'onpointerrawupdate' in window ? 'pointerrawupdate' : 'pointermove'}${g.p.challenge ? ' · challenge D' + CC.U.pad2(g.p.challenge.n) + ' beat ' + g.p.challenge.score : ''}</div>
       <h4>Last events</h4>
       <pre>${last.replace(/</g, '&lt;') || '—'}</pre>
     `;

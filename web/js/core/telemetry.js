@@ -50,8 +50,19 @@ CC.Telemetry = class {
   _loadBuffer() {
     try { const raw = localStorage.getItem(this.LS_BUF); this.buffer = raw ? raw.split('\n').filter(Boolean) : []; } catch (_) { this.buffer = []; }
   }
+  // localStorage write is synchronous and the ring buffer is ~1 MB when full, so persisting on every
+  // `smash` would stall the main thread mid-tap. Mark dirty and flush once, off the input path.
   _persist() {
     if (this.buffer.length > this.BUF_CAP) this.buffer.splice(0, this.buffer.length - this.BUF_CAP);
+    this.dirty = true;
+    if (this.flushTimer) return;
+    const run = () => { this.flushTimer = null; this.flush(); };
+    this.flushTimer = window.requestIdleCallback ? requestIdleCallback(run, { timeout: 1500 }) : setTimeout(run, 400);
+  }
+  flush() {
+    if (!this.dirty) return;
+    this.dirty = false;
+    if (this.flushTimer) { (window.cancelIdleCallback || clearTimeout)(this.flushTimer); this.flushTimer = null; }
     try { localStorage.setItem(this.LS_BUF, this.buffer.join('\n')); } catch (_) {}
   }
 
@@ -90,7 +101,8 @@ CC.Telemetry = class {
     this.sessionStartMs = Date.now();
     this.ended = false;
     this.sessionStats = { levels_attempted: 0, levels_cleared: 0, revives_used: 0, rv_watched: 0, iap_revenue_usd: 0 };
-    if (this.freshInstall) { this.emit('install', { attribution: null }); this.freshInstall = false; }
+    // attribution stays null unless the first open came through a Challenge link (organic loop, no paid channel)
+    if (this.freshInstall) { this.emit('install', { attribution: CC.inboundChallenge ? 'challenge_link' : null }); this.freshInstall = false; }
     this.emit('session_start', {
       cold_start: !!coldStart,
       push_enabled: null,
@@ -102,10 +114,12 @@ CC.Telemetry = class {
     if (this.ended) return null;
     this.ended = true;
     const s = this.sessionStats;
-    return this.emit('session_end', Object.assign({
+    const ev = this.emit('session_end', Object.assign({
       session_duration_s: Math.round((Date.now() - this.sessionStartMs) / 1000),
       end_reason: reason || 'other',
     }, s));
+    this.flush(); // page may be going away — do not leave the tail of the session in memory only
+    return ev;
   }
 
   // ---- domain helpers (keep prop names canonical in one place) ----
@@ -118,6 +132,10 @@ CC.Telemetry = class {
   rvWatch(p) { if (p.completed) this.sessionStats.rv_watched++; return this.emit('rv_watch', p); }
   iap(p) { if (p.validated) this.sessionStats.iap_revenue_usd += p.price_usd; return this.emit('iap', p); }
   tutorialStep(step_id, completed) { return this.emit('tutorial_step', { step_id, completed: !!completed }); }
+  // ---- organic-loop events (additive; not in the Kade must-ship 11, ignored by verify-telemetry) ----
+  // kind: score | challenge · method: web_share | clipboard | prompt | failed
+  share(p) { return this.emit('share', p); }
+  challengeOpen(p) { return this.emit('challenge_open', p); }
 
   // ---- acceptance helpers ----
   counts(sessionOnly) {
@@ -129,6 +147,7 @@ CC.Telemetry = class {
   }
   toJSONL(all) { return (all ? this.buffer : this.events.map((e) => JSON.stringify(e))).join('\n') + '\n'; }
   download(all) {
+    this.flush();
     const blob = new Blob([this.toJSONL(all)], { type: 'application/x-ndjson' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -137,6 +156,8 @@ CC.Telemetry = class {
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   }
   resetInstall() {
+    this.dirty = false;
+    if (this.flushTimer) { (window.cancelIdleCallback || clearTimeout)(this.flushTimer); this.flushTimer = null; }
     try { localStorage.removeItem(this.LS_ID); localStorage.removeItem(this.LS_BUF); } catch (_) {}
   }
 };

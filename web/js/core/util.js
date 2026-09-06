@@ -67,23 +67,39 @@ CC.U = {
     ctx.fillText(str, x, y);
     ctx.restore();
   },
+  // shade/desat are called per button/lane per frame with a handful of constant inputs → memoize
+  // (bounded: palette × a few amounts) instead of re-parsing hex strings every frame.
+  _colorCache: new Map(),
   shade(hex, amt) {
     // amt in [-1,1]: negative darkens, positive lightens
+    const key = 's' + hex + amt, hit = CC.U._colorCache.get(key);
+    if (hit) return hit;
     const n = parseInt(hex.slice(1), 16);
     let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
     const f = (c) => CC.U.clamp(Math.round(amt < 0 ? c * (1 + amt) : c + (255 - c) * amt), 0, 255);
     r = f(r); g = f(g); b = f(b);
-    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    const out = '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    if (CC.U._colorCache.size < 512) CC.U._colorCache.set(key, out);
+    return out;
   },
   desat(hex, amt) {
+    const key = 'd' + hex + amt, hit = CC.U._colorCache.get(key);
+    if (hit) return hit;
     const n = parseInt(hex.slice(1), 16);
     const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
     const l = 0.3 * r + 0.59 * g + 0.11 * b;
     const f = (c) => Math.round(c + (l - c) * amt);
-    return '#' + ((1 << 24) + (f(r) << 16) + (f(g) << 8) + f(b)).toString(16).slice(1);
+    const out = '#' + ((1 << 24) + (f(r) << 16) + (f(g) << 8) + f(b)).toString(16).slice(1);
+    if (CC.U._colorCache.size < 512) CC.U._colorCache.set(key, out);
+    return out;
   },
   query(name) {
     const m = new RegExp('[?&]' + name + '=([^&#]*)').exec(location.search);
+    return m ? decodeURIComponent(m[1]) : null;
+  },
+  // `#a=1&b=2` — payloads ride in the hash so they never hit server logs and never collide with ?flags
+  hashParam(name) {
+    const m = new RegExp('[#&]' + name + '=([^&]*)').exec(location.hash);
     return m ? decodeURIComponent(m[1]) : null;
   },
   todayUTC() { return new Date().toISOString().slice(0, 10); },

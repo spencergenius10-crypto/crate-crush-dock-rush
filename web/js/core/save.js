@@ -21,6 +21,7 @@ CC.Save = class {
       settings: { audio: false, haptics: true, capture: false },
       bestStreak: 0,
       bestHaul: 0,
+      challenge: null,             // inbound friend's challenge {n, level_id, score, streak, time, cleared} until beaten/dismissed
       freeDailyReviveDate: null,
       stats: { docks_cleared: 0, docks_failed: 0, crates_smashed: 0, revives: 0, rv_watched: 0 },
     };
