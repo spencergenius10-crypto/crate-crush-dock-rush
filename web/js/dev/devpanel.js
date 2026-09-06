@@ -44,6 +44,7 @@ CC.DevPanel = class {
     const last = tlm.events.slice(-4).map((e) => JSON.stringify(e).slice(0, 160)).join('\n');
     this.el.innerHTML = `
       <h3>DOCK RUSH DEV · ${g.currentId || ''}${run ? ' / ' + run.phaseName + (run.overlay ? ' + overlay' : '') : ''}</h3>
+      ${run ? `<div class="muted">score ${run.stats.score} · fever ${run.fever.toFixed(2)} tier ${run.feverTier} (×${run.feverMult()}) peak ${run.stats.feverPeak} · streak ${run.stats.streak} · golden ${run.stats.golden} · detonated ${run.stats.timedSpills} · frozen left ${run.smash.crates.filter((c) => c.alive && c.frozen).length}</div>` : ''}
       <div class="muted">app ${CC.CONFIG.APP_VER} · schema ${CC.CONFIG.SCHEMA_VER} · user ${tlm.identity.user_id.slice(0, 8)} · session ${tlm.session_id.slice(0, 8)}${tlm.ended ? ' (ended)' : ''}</div>
       <h4>Kade must-ship — ${allSession ? '<span style="color:#5fd38d">ALL GREEN (this session)</span>' : 'this session / all-time'}</h4>
       <table><tr><td class="muted">event</td><td class="muted">session</td><td class="muted">all</td></tr>${rows}</table>

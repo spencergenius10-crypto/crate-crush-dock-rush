@@ -33,6 +33,7 @@ CC.Game = class {
     this.ctx = canvas.getContext('2d', { alpha: false, desynchronized: !CC.U.query('nodesync') });
     this.fx = new CC.FX();
     this.audio = new CC.Audio();
+    CC.audio = this.audio; // Kade audio — same instance, reachable as CC.audio.* from anywhere
     this.tlm = new CC.Telemetry();
     this.save = new CC.Save();
     this.applySettings();

@@ -38,6 +38,22 @@ window.CC = window.CC || {};
     ctx.strokeStyle = C.Outline; ctx.lineWidth = 3; ctx.strokeRect(x, y, w, h);
   } };
 
+  A['CC_DockRush_Crate_Frozen_Shell_v1'] = { cat: 'Crate', draw(ctx, x, y, w, h, o) {
+    // ice shell over any crate: pale-blue translucent slab + cracks; o.cracked after the first tap
+    ctx.fillStyle = 'rgba(160,220,255,0.55)'; U.rrect(ctx, x - 3, y - 3, w + 6, h + 6, 8); ctx.fill();
+    ctx.strokeStyle = '#dff4ff'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fillRect(x + w * 0.12, y + h * 0.1, w * 0.18, h * 0.42);
+    ctx.strokeStyle = C.Outline; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x + w * 0.55, y - 3); ctx.lineTo(x + w * 0.62, y + h * 0.3); ctx.lineTo(x + w * 0.5, y + h * 0.55); ctx.stroke();
+    if (o && o.cracked) {
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(x + w * 0.2, y + h * 0.6); ctx.lineTo(x + w * 0.45, y + h * 0.5); ctx.lineTo(x + w * 0.5, y + h * 0.9);
+      ctx.moveTo(x + w * 0.45, y + h * 0.5); ctx.lineTo(x + w * 0.85, y + h * 0.35); ctx.stroke();
+    }
+    // "tap ×2" glyph so the rule reads without color
+    ctx.fillStyle = C.Text_Ink; ctx.beginPath(); ctx.arc(x + w * 0.72, y + h * 0.78, 5, 0, Math.PI * 2); ctx.arc(x + w * 0.86, y + h * 0.78, 5, 0, Math.PI * 2); ctx.fill();
+  } };
+
   // ---------- B. Cargo ----------
   for (const t of CC.CARGO) A[t.asset] = { cat: 'Cargo', draw(ctx, x, y, w, h) { CC.drawCargo(ctx, t, x + w / 2, y + h / 2, Math.min(w, h) * 0.75, 'idle'); } };
 
@@ -171,6 +187,20 @@ window.CC = window.CC || {};
     ctx.beginPath(); ctx.moveTo(-s * 0.6, s); ctx.lineTo(s * 0.6, s); ctx.lineTo(0, 0); ctx.closePath(); ctx.fill();
     ctx.restore();
     if (o && o.label != null) U.text(ctx, o.label, cx, cy + r + 12, { size: 12, color: C.Text_Secondary });
+  } };
+  A['CC_DockRush_UI_Fever_Ring_v1'] = { cat: 'UI', draw(ctx, x, y, w, h, o) {
+    // outer flow/fever arc around the timer ring: value 0..1, tier 0..3 colors the arc; tick marks at tier thresholds
+    const v = o && o.value != null ? o.value : 0.5, tier = (o && o.tier) || 0;
+    const r = Math.min(w, h) / 2 - 2, cx = x + w / 2, cy = y + h / 2;
+    const col = ['#4a5468', C.Warn, C.Accent_SmashHot, '#ffffff'][tier];
+    ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+    if (v > 0) {
+      ctx.strokeStyle = col; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, v)); ctx.stroke();
+      ctx.lineCap = 'butt';
+    }
+    ctx.strokeStyle = C.Outline; ctx.lineWidth = 2;
+    for (const t of CC.CONFIG.FEVER.tiers) { const a = -Math.PI / 2 + Math.PI * 2 * t; ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * (r - 4), cy + Math.sin(a) * (r - 4)); ctx.lineTo(cx + Math.cos(a) * (r + 4), cy + Math.sin(a) * (r + 4)); ctx.stroke(); }
   } };
   A['CC_DockRush_UI_Badge_Streak_v1'] = { cat: 'UI', draw(ctx, x, y, w, h, o) {
     U.fillRRect(ctx, x, y, w, h, h / 2, C.BG_UI); U.strokeRRect(ctx, x, y, w, h, h / 2, C.Warn, 3);

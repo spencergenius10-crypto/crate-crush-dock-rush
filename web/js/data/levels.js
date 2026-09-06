@@ -21,6 +21,16 @@ CC.getLevel = function (n) {
   const metalPct = n >= 13 ? CC.U.clamp(0.15 + (n - 13) * 0.02, 0.15, 0.6) : 0;
   const timer = n <= 5 ? 90 : n <= 12 ? 60 : Math.round((8 + crates * cargoPerCrate * 1.55) * (n >= 36 ? 0.92 : 1));
 
+  // Hazards enter after FTUE, one at a time, and ramp slowly (share of crates / cargo pieces):
+  //   frozen crate  D04+  double-tap to shatter the ice before smash damage lands
+  //   golden cargo  D04+  ×3 score when sorted right, big fever push
+  //   timed cargo   D06+  fuse: sort within TIMED_FUSE_S or it detonates (= spill)
+  const hazards = {
+    frozenPct: n >= 4 ? CC.U.clamp(0.15 + (n - 4) * 0.01, 0.15, 0.4) : 0,
+    goldenPct: n >= 4 ? 0.12 : 0,
+    timedPct: n >= 6 ? CC.U.clamp(0.12 + (n - 6) * 0.008, 0.12, 0.35) : 0,
+  };
+
   return {
     n, id, band: band.id, bandLabel: band.label,
     name: `Dock ${CC.U.pad2(n)}`,
@@ -35,6 +45,7 @@ CC.getLevel = function (n) {
     baseCoins: band.base,
     expectedCoins: band.expected,
     timerPressure: n >= 13,
+    hazards,
     ftue: n === 1,
     difficulty_tier: band.id,
   };

@@ -14,7 +14,9 @@ CC.DockRunScreen = class {
     this.attempt_n = p.attempts[this.levelId];
     g.tlm.dockAttempt();
 
-    this.stats = { smashed: 0, misses: 0, streak: 0, bestStreak: 0, spills: 0, sorted: 0, revives: 0, shieldUsed: false, doubled: false };
+    this.stats = { smashed: 0, misses: 0, streak: 0, bestStreak: 0, spills: 0, sorted: 0, revives: 0, shieldUsed: false, doubled: false, score: 0, golden: 0, timedSpills: 0, feverPeak: 0 };
+    // Flow / Fever: 0..1, builds on good play, decays on idle / halves on a miss. Tier → score multiplier.
+    this.fever = 0; this.feverTier = 0; this.feverFlashT = 0;
     this.cargoTotal = this.lv.crates * this.lv.cargoPerCrate;
     this.cargoQueue = [];
     this.timerMax = this.lv.timer;
@@ -74,8 +76,44 @@ CC.DockRunScreen = class {
     this.ftueText = null;
   }
 
-  smashComplete() { this.setPhase('sort'); this.g.audio.whoosh(); this.g.fx.doFlash(0.12, '#fff'); }
+  smashComplete() { this.setPhase('sort'); this.g.audio.whoosh(); this.g.fx.doFlash(0.12, '#fff'); } // Kade audio (whoosh)
   sortComplete() { this.setPhase('truck'); }
+
+  // ---------- score + fever ----------
+  feverMult() { return CC.CONFIG.FEVER.mults[this.feverTier]; }
+  feverColor() { return ['#a7afbd', CC.CONFIG.COLORS.Warn, CC.CONFIG.COLORS.Accent_SmashHot, '#ffffff'][this.feverTier]; }
+  addScore(base) { const v = Math.round(base * this.feverMult()); this.stats.score += v; return v; }
+  addFever(amt) {
+    this.fever = CC.U.clamp(this.fever + amt, 0, 1);
+    this.retier();
+  }
+  feverMiss() { this.fever *= CC.CONFIG.FEVER.missMult; this.retier(); }
+  retier() {
+    const T = CC.CONFIG.FEVER.tiers;
+    const tier = this.fever >= T[2] ? 3 : this.fever >= T[1] ? 2 : this.fever >= T[0] ? 1 : 0;
+    if (tier === this.feverTier) return;
+    const up = tier > this.feverTier;
+    this.feverTier = tier;
+    this.stats.feverPeak = Math.max(this.stats.feverPeak, tier);
+    if (up) {
+      // big clear beat: label, lane flash, micro-shake scaled by tier, haptic pattern
+      this.feverFlashT = 0.5;
+      this.g.fx.floatText(CC.CONFIG.W / 2, 470, `FEVER ×${this.feverMult()}`, this.feverColor(), 30 + tier * 4, { punch: 1, life: 1.0 });
+      this.g.fx.doShake(2 + tier * 1.5); this.g.fx.doFlash(0.08 + tier * 0.04, this.feverColor());
+      this.g.fx.hapticFever(tier);
+      for (const l of this.lanes) l.flashT = 0.4;
+    }
+    this.g.audio.fever(tier); // Kade audio — tier entered (0 = dropped out)
+  }
+  feverUpdate(dt) {
+    if (this.fever <= 0) return;
+    const F = CC.CONFIG.FEVER;
+    // faster bleed the higher you are, and faster still when the finger is off the glass
+    let rate = F.decayBase + F.decayHigh * this.fever;
+    if (!this.g.input.down) rate *= F.idleMult;
+    this.fever = Math.max(0, this.fever - rate * dt);
+    this.retier();
+  }
 
   progressPct() {
     const smashPart = this.lv.crates ? this.stats.smashed / this.lv.crates : 1;
@@ -105,7 +143,7 @@ CC.DockRunScreen = class {
       level_id: this.levelId, attempt_n: this.attempt_n, duration_s: Math.round(this.elapsed),
       fail_reason: this.failReason || 'other', crates_smashed: this.stats.smashed, sort_misses: this.stats.misses,
       progress_pct: this.progressPct(),
-    }, this.challengeProps()));
+    }, this.feelProps(), this.challengeProps()));
     this.g.p.stats.docks_failed++; this.g.save.save();
     this.showResults(false);
   }
@@ -117,7 +155,7 @@ CC.DockRunScreen = class {
       crates_smashed: this.stats.smashed, sort_misses: this.stats.misses,
       stars: this.stats.misses === 0 ? 3 : this.stats.misses <= 2 ? 2 : 1,
       difficulty_tier: this.lv.difficulty_tier, is_first_clear: isFirst,
-    }, this.challengeProps()));
+    }, this.feelProps(), this.challengeProps()));
     this.ftueDone('truck');
     this.showResults(true);
   }
@@ -140,9 +178,11 @@ CC.DockRunScreen = class {
     for (const l of this.lanes) l.flashT = Math.max(0, l.flashT - dt);
     if (this.overlay) { this.overlay.update(dt); return; }
     this.elapsed += dt;
+    this.feverFlashT = Math.max(0, this.feverFlashT - dt);
     if ((this.phaseName === 'smash' || this.phaseName === 'sort') && !this.g.freezeTimer) {
       this.timer -= dt;
       if (this.timer <= 0) { this.timer = 0; this.softFail('timer'); return; }
+      this.feverUpdate(dt); // fever only bleeds while the player is on the clock
     }
     this.phase.update(dt);
   }
@@ -186,10 +226,22 @@ CC.DockRunScreen = class {
     const active = this.phaseName !== 'smash';
     ctx.save();
     if (!active) ctx.globalAlpha = 0.55;
+    // fever glow: layered translucent strokes (no shadowBlur — too costly on mobile GPUs), pulse rises with tier
+    const tier = this.feverTier;
+    if (tier > 0 && active) {
+      const col = this.feverColor(), pulse = 0.5 + 0.5 * Math.sin(this.t * (4 + tier * 3));
+      const base = [0, 0.18, 0.28, 0.4][tier] + pulse * 0.12 + (this.feverFlashT > 0 ? this.feverFlashT * 0.6 : 0);
+      ctx.strokeStyle = col;
+      for (let i = 0; i < tier; i++) {
+        ctx.globalAlpha = Math.min(1, base * (1 - i * 0.3)); ctx.lineWidth = 6 + i * 8;
+        for (const l of this.lanes) { CC.U.rrect(ctx, l.x - 4 - i * 4, l.y - 10 - i * 4, l.w + 8 + i * 8, l.h + 14 + i * 8, 10); ctx.stroke(); }
+      }
+      ctx.globalAlpha = 1;
+    }
     for (const l of this.lanes) {
       const type = this.laneCurrent(l);
       const hl = this.sort.highlightLane === l;
-      CC.drawAsset('CC_DockRush_Lane_Base_v1', ctx, l.x, l.y, l.w, l.h, { floor: hl ? CC.U.desat(type.color, 0.7) : null });
+      CC.drawAsset('CC_DockRush_Lane_Base_v1', ctx, l.x, l.y, l.w, l.h, { floor: hl ? CC.U.desat(type.color, 0.7) : tier >= 2 ? CC.U.desat(this.feverColor(), 0.85) : null });
       CC.drawAsset('CC_DockRush_Lane_Rim_v1', ctx, l.x, l.y, l.w, l.h, { color: type.color, type });
       if (l.flashT > 0) { ctx.globalAlpha = l.flashT * 2; ctx.fillStyle = type.color; ctx.fillRect(l.x, l.y - 8, l.w, l.h + 8); ctx.globalAlpha = active ? 1 : 0.55; }
       // seated cargo (Lane seat state)
@@ -197,7 +249,7 @@ CC.DockRunScreen = class {
       l.seated.forEach((s, i) => {
         const col = i % cols, row = Math.floor(i / cols);
         const sx = l.x + 22 + col * ((l.w - 44) / (cols - 1 || 1)), sy = l.y + l.h - 22 - row * 24;
-        if (sy > l.y + 18) CC.drawCargo(ctx, s.type, sx, sy, 22, 'seat');
+        if (sy > l.y + 18) CC.drawCargo(ctx, s.type, sx, sy, 22, 'seat', { golden: s.golden });
       });
       // fill meter (ratio from systems: seated / expected of this lane)
       const exp = this.laneExpected(l);
@@ -216,10 +268,16 @@ CC.DockRunScreen = class {
     // total cargo of this lane's types on the dock — fixed once crates are built, so compute once per run
     if (l.expected == null) {
       let n = 0;
-      for (const c of this.smash.crates) for (const t of c.cargo) if (l.types.some((x) => x.id === t.id)) n++;
+      for (const c of this.smash.crates) for (const piece of c.cargo) if (l.types.some((x) => x.id === piece.type.id)) n++;
       l.expected = n;
     }
     return l.expected;
+  }
+
+  // Feel-system telemetry (additive props on dock_clear / dock_fail; not part of the must-ship contract)
+  feelProps() {
+    const s = this.stats;
+    return { run_score: s.score, fever_peak_tier: s.feverPeak, golden_sorted: s.golden, unstable_detonated: s.timedSpills };
   }
 
   // Challenge link context for this dock (friend's target), or null. Extra telemetry props only.
@@ -235,14 +293,22 @@ CC.DockRunScreen = class {
     if (!capture) {
       CC.U.text(ctx, this.lv.name.toUpperCase(), 16, 22, { size: 16, weight: 900, align: 'left' });
       CC.U.text(ctx, '✕ quit', 16, 44, { size: 11, weight: 700, align: 'left', color: '#6d7684' });
+      CC.U.text(ctx, `SCORE ${this.stats.score}`, 16, 66, { size: 12, weight: 800, align: 'left', color: C.Text_Secondary });
       CC.UI.coinChip(ctx, W - 16, 12, this.g.p.coins, 'right');
     }
     const ratio = this.timerMax ? CC.U.clamp(this.timer / this.timerMax, 0, 1) : 1;
+    // fever arc wraps the timer ring; stays up in Truck so the peak reads on the FULL beat
+    CC.drawAsset('CC_DockRush_UI_Fever_Ring_v1', ctx, W / 2 - 44, 4, 88, 88, { value: this.fever, tier: this.feverTier });
     if (this.phaseName !== 'truck') CC.drawAsset('CC_DockRush_UI_Timer_Ring_v1', ctx, W / 2 - 36, 12, 72, 72, { ratio, label: capture ? null : Math.ceil(this.timer) + 's' });
-    // phase literacy chip (beside the ring, small)
+    // phase literacy chip + live multiplier (beside the ring, small)
     if (!capture) {
       const label = { smash: 'SMASH', sort: 'SORT', truck: 'TRUCK' }[this.phaseName];
       CC.U.text(ctx, label, W / 2 + 60, 48, { size: 12, weight: 900, align: 'left', color: C.Text_Secondary });
+    }
+    if (this.feverTier > 0) {
+      const pulse = 1 + Math.sin(this.t * 8) * 0.06 * this.feverTier;
+      CC.U.text(ctx, `×${this.feverMult()}`, W / 2 + 60, 26, { size: 20 * pulse, weight: 900, align: 'left', color: this.feverColor(), stroke: C.Outline, strokeWidth: 5 });
+      CC.U.text(ctx, 'FEVER', W / 2 + 104, 27, { size: 11, weight: 900, align: 'left', color: this.feverColor() });
     }
     // spills (lives) as icons — not color-only
     if (this.phaseName === 'sort') {

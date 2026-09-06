@@ -13,7 +13,8 @@ CC.OverlayResults = class {
     this.shareFile = null; this.cardRequested = false; this.sharing = false;
     this.bonusPct = CC.ECON.streakBonusPct(s.bestStreak);
     this.coins = cleared ? Math.round(lv.baseCoins * (1 + this.bonusPct / 100)) : 0;
-    this.haulScore = cleared ? this.coins + s.bestStreak * 10 + s.smashed * 2 + Math.max(0, Math.round(run.timer)) : s.smashed * 2 + s.sorted * 3;
+    // haul = coins + streak + crates + time-left + the fever-multiplied run score (golden ×3, perfect +5 ride in there)
+    this.haulScore = cleared ? this.coins + s.bestStreak * 10 + s.smashed * 2 + Math.max(0, Math.round(run.timer)) + s.score : s.smashed * 2 + s.sorted * 3 + Math.round(s.score / 2);
     if (cleared) {
       this.g.save.addCoins(this.coins);
       p.cleared[lv.id] = (p.cleared[lv.id] || 0) + 1;
@@ -39,7 +40,7 @@ CC.OverlayResults = class {
   build() {
     const s = this.run.stats;
     this.buttons = [];
-    this.buttons.push(new CC.Button({ id: 'res_share', x: 60, y: 620, w: 204, h: 52, label: 'SHARE SCORE', size: 15, kind: 'ghost', onTap: () => this.share('score') }));
+    this.buttons.push(new CC.Button({ id: 'res_share', x: 60, y: 620, w: 204, h: 52, label: 'SHARE RUN', size: 15, kind: 'ghost', onTap: () => this.share('score') }));
     this.buttons.push(new CC.Button({ id: 'res_challenge', x: 276, y: 620, w: 204, h: 52, label: 'CHALLENGE A FRIEND', size: 14, kind: 'ghost', onTap: () => this.share('challenge') }));
     if (this.cleared) {
       this.buttons.push(new CC.Button({ id: 'res_double', x: 60, y: 690, w: 204, h: 68, label: '2× HAUL', sub: s.doubled ? 'claimed' : 'watch an ad', size: 20, kind: 'ghost', enabled: !s.doubled, onTap: () => this.doubleHaul() }));
@@ -70,6 +71,7 @@ CC.OverlayResults = class {
   share(kind) {
     if (this.sharing) return;
     this.sharing = true;
+    this.g.audio.chime(0); // Kade audio — share button
     const ch = this.payload();
     const url = CC.Share.challengeURL(ch);
     const payload = { title: 'Crate Crush: Dock Rush', text: CC.Share.text(kind, ch), url };
@@ -109,13 +111,15 @@ CC.OverlayResults = class {
     if (this.cleared && this.haulScore >= p.bestHaul && this.t > 0.9) CC.U.text(ctx, 'NEW BEST', 430, 364, { size: 12, weight: 900, color: C.Safe });
 
     // haul breakdown
+    const fever = s.feverPeak ? `×${CC.CONFIG.FEVER.mults[s.feverPeak]} peak` : '—';
+    const golden = s.golden ? ` · ${s.golden} golden` : '';
     const rows = this.cleared
-      ? [['COINS', `+${CC.U.fmtCoins(this.coins)}${s.doubled ? ' ×2' : ''}`], ['BASE + STREAK', `${run.lv.baseCoins} +${this.bonusPct}%`], ['BEST STREAK', `${s.bestStreak}`], ['CRATES', `${s.smashed}`], ['MISSES', `${s.misses}`], ['TIME', `${Math.round(run.elapsed)}s`]]
-      : [['COINS', '0 (progress discarded)'], ['CRATES', `${s.smashed}/${run.lv.crates}`], ['SORTED', `${s.sorted}/${run.cargoTotal}`], ['MISSES', `${s.misses}`], ['BEST STREAK', `${s.bestStreak}`], ['TIME', `${Math.round(run.elapsed)}s`]];
+      ? [['COINS', `+${CC.U.fmtCoins(this.coins)}${s.doubled ? ' ×2' : ''}`], ['BASE + STREAK', `${run.lv.baseCoins} +${this.bonusPct}%`], ['RUN SCORE · FEVER', `${s.score}${golden} · ${fever}`], ['BEST STREAK', `${s.bestStreak}`], ['CRATES', `${s.smashed}`], ['MISSES', `${s.misses}`], ['TIME', `${Math.round(run.elapsed)}s`]]
+      : [['COINS', '0 (progress discarded)'], ['RUN SCORE · FEVER', `${s.score}${golden} · ${fever}`], ['CRATES', `${s.smashed}/${run.lv.crates}`], ['SORTED', `${s.sorted}/${run.cargoTotal}`], ['MISSES', `${s.misses}`], ['BEST STREAK', `${s.bestStreak}`], ['TIME', `${Math.round(run.elapsed)}s`]];
     rows.forEach(([a, b], i) => {
-      const y = 462 + i * 24;
-      CC.U.text(ctx, a, 80, y, { size: 14, weight: 800, align: 'left', color: C.Text_Secondary });
-      CC.U.text(ctx, b, 460, y, { size: 16, weight: 900, align: 'right', color: i === 0 ? C.Warn : C.Text_Primary });
+      const y = 458 + i * 21;
+      CC.U.text(ctx, a, 80, y, { size: 13, weight: 800, align: 'left', color: C.Text_Secondary });
+      CC.U.text(ctx, b, 460, y, { size: 15, weight: 900, align: 'right', color: i === 0 ? C.Warn : a.startsWith('RUN SCORE') ? '#ffd65a' : C.Text_Primary });
     });
     // one status line: unlock and/or friend's challenge verdict
     const status = [];
