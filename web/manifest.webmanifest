@@ -1,0 +1,15 @@
+{
+  "name": "Crate Crush: Dock Rush",
+  "short_name": "Dock Rush",
+  "description": "Smash crates, sort cargo, fill the truck. Free browser game.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#12151b",
+  "theme_color": "#12151b",
+  "icons": [
+    { "src": "icons/app-icon-1024.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" },
+    { "src": "icons/app-icon-1024.png", "sizes": "1024x1024", "type": "image/png", "purpose": "maskable" }
+  ]
+}

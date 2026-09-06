@@ -20,18 +20,24 @@ CC.HubScreen = class {
     });
     if (this.tab === 'docks') {
       // dock cards around the next level
-      const next = p.nextLevel;
+      const next = p.nextLevel, ch = p.challenge;
       const first = CC.U.clamp(next - 2, 1, 46);
       for (let i = 0; i < 5; i++) {
         const n = first + i;
         const lv = CC.getLevel(n);
-        const state = n < next ? 'cleared' : n === next ? 'next' : 'locked';
+        const state = n < next ? 'cleared' : n === next ? 'next' : ch && ch.n === n ? 'challenge' : 'locked';
         const card = { n, lv, state, x: 30, y: 128 + i * 104, w: 480, h: 92 };
         this.cards.push(card);
         if (state !== 'locked') this.buttons.push(new CC.Button({ id: 'dock_' + n, x: card.x, y: card.y, w: card.w, h: card.h, label: '', visible: false, onTap: () => this.g.go('SCR_DockBrief', { levelN: n }) }));
       }
       this.buttons.push(new CC.Button({ id: 'upgrade', x: 30, y: 664, w: 480, h: 64, label: 'UPGRADE BAY', icon: 'CC_DockRush_UI_Icon_Upgrade_v1', kind: 'ghost', onTap: () => this.g.go('SCR_Upgrade') }));
-      this.buttons.push(new CC.Button({ id: 'play', x: 30, y: 744, w: 480, h: 84, label: `PLAY DOCK ${CC.U.pad2(next)}`, sub: 'smash → sort → truck', size: 26, onTap: () => this.g.go('SCR_DockBrief', { levelN: next }) }));
+      // a friend's challenge takes over PLAY (any dock, no unlock skip) until it is beaten or dismissed
+      if (ch) {
+        this.buttons.push(new CC.Button({ id: 'play', x: 30, y: 744, w: 480, h: 84, label: `PLAY DOCK ${CC.U.pad2(ch.n)}`, sub: `friend's challenge · beat ${ch.score}`, size: 26, kind: 'good', onTap: () => this.g.go('SCR_DockBrief', { levelN: ch.n }) }));
+        this.buttons.push(new CC.Button({ id: 'challenge_dismiss', x: 20, y: 16, w: 124, h: 32, label: '✕ CHALLENGE', size: 11, kind: 'ghost', onTap: () => { p.challenge = null; this.g.save.save(); this.buildButtons(); } }));
+      } else {
+        this.buttons.push(new CC.Button({ id: 'play', x: 30, y: 744, w: 480, h: 84, label: `PLAY DOCK ${CC.U.pad2(next)}`, sub: 'smash → sort → truck', size: 26, onTap: () => this.g.go('SCR_DockBrief', { levelN: next }) }));
+      }
     } else if (this.tab === 'settings') {
       const s = p.settings;
       const row = (i, id, label, val, fn) => this.buttons.push(new CC.Button({ id, x: 30, y: 160 + i * 84, w: 480, h: 64, label: `${label}: ${val ? 'ON' : 'OFF'}`, size: 20, kind: val ? 'good' : 'ghost', onTap: fn }));
@@ -53,7 +59,9 @@ CC.HubScreen = class {
     const C = CC.CONFIG.COLORS, W = CC.CONFIG.W, H = CC.CONFIG.H, p = this.g.p;
     ctx.fillStyle = C.BG_UI; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = '#20262f'; for (let i = 0; i < 6; i++) ctx.fillRect(i * 90 + 4, 0, 82, H);
-    CC.UI.header(ctx, 'WAREHOUSE HUB', this.tab === 'docks' ? 'pick your next dock' : this.tab === 'book' ? 'Cargo Book — collection (cosmetic, no power)' : 'settings');
+    const ch = this.tab === 'docks' ? p.challenge : null;
+    CC.UI.header(ctx, 'WAREHOUSE HUB', ch ? null : this.tab === 'docks' ? 'pick your next dock' : this.tab === 'book' ? 'Cargo Book — collection (cosmetic, no power)' : 'settings');
+    if (ch) CC.U.text(ctx, `CHALLENGE · beat ${ch.score} on DOCK ${CC.U.pad2(ch.n)}${ch.cleared ? '' : ' (friend spilled out)'}`, W / 2, 92, { size: 14, weight: 900, color: C.Warn });
     CC.UI.coinChip(ctx, W - 20, 20, p.coins, 'right');
 
     if (this.tab === 'docks') {
@@ -77,10 +85,10 @@ CC.HubScreen = class {
   }
   drawCard(ctx, c) {
     const C = CC.CONFIG.COLORS, p = this.g.p;
-    const isNext = c.state === 'next', locked = c.state === 'locked';
-    const pulse = isNext ? 1 + Math.sin(this.t * 4) * 0.01 : 1;
+    const isNext = c.state === 'next', locked = c.state === 'locked', isChallenge = c.state === 'challenge';
+    const pulse = isNext || isChallenge ? 1 + Math.sin(this.t * 4) * 0.01 : 1;
     ctx.save(); ctx.translate(c.x + c.w / 2, c.y + c.h / 2); ctx.scale(pulse, pulse); ctx.translate(-(c.x + c.w / 2), -(c.y + c.h / 2));
-    CC.UI.panel(ctx, c.x, c.y, c.w, c.h, { fill: locked ? '#20252d' : C.BG_UI2, stroke: isNext ? C.Warn : '#3a4250' });
+    CC.UI.panel(ctx, c.x, c.y, c.w, c.h, { fill: locked ? '#20252d' : C.BG_UI2, stroke: isNext ? C.Warn : isChallenge ? C.Safe : '#3a4250' });
     // dock silhouette: lane count + crates
     const lanes = Math.min(c.lv.types.length, p.upg_lanes);
     for (let i = 0; i < lanes; i++) { ctx.fillStyle = locked ? '#3a4250' : CC.U.desat(c.lv.types[i % c.lv.types.length].color, 0.4); ctx.fillRect(c.x + 18 + i * 16, c.y + 50, 12, 28); }
@@ -90,8 +98,8 @@ CC.HubScreen = class {
     // cargo icons
     if (!locked) c.lv.types.forEach((t, i) => CC.drawCargo(ctx, t, c.x + c.w - 40 - i * 34, c.y + 62, 18, 'idle'));
     // status badge
-    const badge = c.state === 'cleared' ? '✓ CLEARED' : isNext ? 'NEXT' : 'LOCKED';
-    const bc = c.state === 'cleared' ? C.Safe : isNext ? C.Warn : '#4a5468';
+    const badge = c.state === 'cleared' ? '✓ CLEARED' : isNext ? 'NEXT' : isChallenge ? 'CHALLENGE' : 'LOCKED';
+    const bc = c.state === 'cleared' ? C.Safe : isNext ? C.Warn : isChallenge ? C.Safe : '#4a5468';
     CC.U.fillRRect(ctx, c.x + c.w - 118, c.y + 12, 104, 24, 12, bc);
     CC.U.text(ctx, badge, c.x + c.w - 66, c.y + 24, { size: 12, weight: 900, color: C.Text_Ink });
     // contract badge (stub) on next card

@@ -41,6 +41,23 @@ CC.FX = class {
       this.particles.push({ kind: 'chip', x: x + CC.U.rand(0, w), y: y + CC.U.rand(0, h), vx: CC.U.rand(-260, 260), vy: CC.U.rand(-520, -160), rot: Math.random() * 6, vr: CC.U.rand(-10, 10), life: CC.U.rand(0.7, 1.1), t: 0, w: CC.U.rand(8, 18), h: CC.U.rand(5, 9), color: CC.U.pick(colors) });
     }
   }
+  splinters(x, y, w, h, colors, n, floorY) {
+    // CC_FX_Smash_Splinters — long pointed shards that spin out, hit the floor line, skid and rest before fading
+    n = (n || 10) * this.scale;
+    for (let i = 0; i < n; i++) {
+      const a = CC.U.rand(-Math.PI, 0) , sp = CC.U.rand(260, 640);
+      this.particles.push({ kind: 'splinter', x: x + CC.U.rand(0, w), y: y + CC.U.rand(0, h), vx: Math.cos(a) * sp * CC.U.rand(0.4, 1), vy: Math.sin(a) * sp, rot: Math.random() * 6, vr: CC.U.rand(-18, 18), life: CC.U.rand(0.9, 1.4), t: 0, len: CC.U.rand(12, 30), thick: CC.U.rand(2.5, 5), color: CC.U.pick(colors), floor: floorY || (y + h + CC.U.rand(0, 18)), rest: false });
+    }
+  }
+  ember(x, y, color) {
+    // CC_FX_Fever_Trail — peak-fever trail: rising sparks that hang behind the cargo
+    for (let i = 0; i < 2; i++) this.particles.push({ kind: 'spark', x: x + CC.U.rand(-8, 8), y: y + CC.U.rand(-8, 8), vx: CC.U.rand(-40, 40), vy: CC.U.rand(-120, -30), life: CC.U.rand(0.3, 0.55), t: 0, r: CC.U.rand(2, 4), color });
+  }
+  // haptic vocabulary (navigator.vibrate patterns, ms) — one place so feel stays consistent
+  hapticPerfect() { this.haptic([12, 20, 24]); }
+  hapticStreak(step) { this.haptic(step ? [18, 30, 18, 30, 36] : 8); }
+  hapticNearMiss() { this.haptic([30, 40, 30]); }
+  hapticFever(tier) { this.haptic(tier >= 3 ? [20, 30, 40, 30, 60] : [20, 30, 40]); }
   trail(x, y, color) {
     // CC_FX_Cargo_Bounce trail — directional swipe trail
     this.particles.push({ kind: 'trail', x, y, life: 0.28, t: 0, r: 10 * this.scale, color });
@@ -98,6 +115,16 @@ CC.FX = class {
       if (p.t >= p.life) { this.particles.splice(i, 1); continue; }
       if (p.kind === 'spark') { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.96; p.vy *= 0.96; }
       else if (p.kind === 'chip') { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += g * dt; p.rot += p.vr * dt; }
+      else if (p.kind === 'splinter') {
+        if (p.rest) continue;
+        p.x += p.vx * dt; p.y += p.vy * dt; p.vy += g * dt; p.rot += p.vr * dt;
+        if (p.y >= p.floor && p.vy > 0) {
+          // one hard bounce, then skid to rest lying flat-ish
+          p.y = p.floor;
+          if (Math.abs(p.vy) > 220) { p.vy = -p.vy * 0.3; p.vx *= 0.6; p.vr *= 0.5; }
+          else { p.rest = true; p.rot = Math.round(p.rot / Math.PI) * Math.PI + CC.U.rand(-0.15, 0.15); }
+        }
+      }
     }
     for (let i = this.texts.length - 1; i >= 0; i--) {
       const t = this.texts[i];
@@ -118,6 +145,11 @@ CC.FX = class {
       } else if (p.kind === 'chip') {
         ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = p.color; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
         ctx.strokeStyle = CC.CONFIG.COLORS.Outline; ctx.lineWidth = 1.5; ctx.strokeRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore();
+      } else if (p.kind === 'splinter') {
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+        ctx.fillStyle = p.color; ctx.strokeStyle = CC.CONFIG.COLORS.Outline; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(-p.len / 2, 0); ctx.lineTo(-p.len * 0.2, -p.thick); ctx.lineTo(p.len / 2, 0); ctx.lineTo(-p.len * 0.2, p.thick); ctx.closePath();
+        ctx.fill(); ctx.stroke(); ctx.restore();
       } else if (p.kind === 'trail') {
         ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 - k), 0, Math.PI * 2); ctx.fill();
       } else if (p.kind === 'puddle') {

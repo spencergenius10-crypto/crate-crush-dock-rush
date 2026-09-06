@@ -1,0 +1,15 @@
+{
+  "name": "crate-crush-dock-rush",
+  "version": "0.1.0-proto",
+  "private": true,
+  "description": "Ratio Studios — Crate Crush: Dock Rush browser prototype. Source in web/ runs with no build; tools/build.mjs produces the minified mobile bundle in dist/.",
+  "scripts": {
+    "dev": "node tools/serve.mjs web 8080",
+    "build": "node tools/build.mjs",
+    "serve": "node tools/serve.mjs dist 8080",
+    "check": "node tools/check-economy.mjs && node tools/verify-telemetry.mjs telemetry/sample-session.jsonl"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

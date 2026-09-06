@@ -11,9 +11,14 @@ CC.CARGO = [
 CC.cargoById = function (id) { return CC.CARGO.find((c) => c.id === id); };
 
 /* Draw a cargo glyph centered at (x,y) with nominal size s.
- * state: 'idle' | 'airborne' | 'seat' | 'spill' — same silhouette, squash/stretch varies. */
+ * state: 'idle' | 'airborne' | 'seat' | 'spill' — same silhouette, squash/stretch varies.
+ * opts.golden → gold halo + glint (×3 score piece) · opts.timed → hazard band + fuse dot (unstable piece) */
 CC.drawCargo = function (ctx, type, x, y, s, state, opts) {
   opts = opts || {};
+  if (opts.golden) {
+    const pulse = 1 + Math.sin(performance.now() / 120) * 0.08;
+    ctx.fillStyle = 'rgba(255,214,90,0.35)'; ctx.beginPath(); ctx.arc(x, y, s * 0.72 * pulse, 0, Math.PI * 2); ctx.fill();
+  }
   const C = CC.CONFIG.COLORS;
   let sx = 1, sy = 1;
   if (state === 'airborne') { sx = 0.92; sy = 1.1; }
@@ -76,6 +81,21 @@ CC.drawCargo = function (ctx, type, x, y, s, state, opts) {
       ctx.fillStyle = lite; ctx.beginPath(); ctx.ellipse(-w * 0.12, hh * 0.05, w * 0.1, hh * 0.18, 0.3, 0, Math.PI * 2); ctx.fill();
       break;
     }
+  }
+  if (opts.golden) {
+    // gold rim + four-point glint — reads as "priority" in 1-bit too
+    ctx.strokeStyle = '#ffd65a'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(0, 0, h * 0.95, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#fff6c8'; const g = h * 0.34, gx = h * 0.55, gy = -h * 0.55;
+    ctx.beginPath(); ctx.moveTo(gx, gy - g); ctx.lineTo(gx + g * 0.3, gy - g * 0.3); ctx.lineTo(gx + g, gy); ctx.lineTo(gx + g * 0.3, gy + g * 0.3); ctx.lineTo(gx, gy + g); ctx.lineTo(gx - g * 0.3, gy + g * 0.3); ctx.lineTo(gx - g, gy); ctx.lineTo(gx - g * 0.3, gy - g * 0.3); ctx.closePath(); ctx.fill();
+  }
+  if (opts.timed) {
+    // hazard band across the middle + blinking fuse dot
+    const bw = s * 1.1, bh = s * 0.22;
+    ctx.fillStyle = '#1a1d24'; ctx.fillRect(-bw / 2, -bh / 2, bw, bh);
+    ctx.fillStyle = '#ffd65a'; for (let i = 0; i < 4; i++) ctx.fillRect(-bw / 2 + i * (bw / 4) + 2, -bh / 2 + 2, bw / 8, bh - 4);
+    ctx.strokeStyle = C.Outline; ctx.lineWidth = 2; ctx.strokeRect(-bw / 2, -bh / 2, bw, bh);
+    const on = Math.floor(performance.now() / 160) % 2 === 0;
+    ctx.fillStyle = on ? C.Fail : '#7a1f1f'; ctx.beginPath(); ctx.arc(0, -h * 0.85, 4.5, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = C.Outline; ctx.lineWidth = 1.5; ctx.stroke();
   }
   ctx.restore();
 };

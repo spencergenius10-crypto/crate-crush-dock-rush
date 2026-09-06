@@ -61,6 +61,16 @@ CC.UI = {
     if (subtitle) CC.U.text(ctx, subtitle, CC.CONFIG.W / 2, 92, { size: 14, weight: 600, color: C.Text_Secondary });
   },
   stageBackdrop(ctx) {
+    // Static every frame → paint once into an offscreen canvas, then a single drawImage per frame.
+    let bd = CC.UI._backdrop;
+    if (!bd) {
+      bd = CC.UI._backdrop = document.createElement('canvas');
+      bd.width = CC.CONFIG.W; bd.height = CC.CONFIG.H;
+      CC.UI._paintBackdrop(bd.getContext('2d'));
+    }
+    ctx.drawImage(bd, 0, 0);
+  },
+  _paintBackdrop(ctx) {
     // Stage_Dock: cool concrete floor + wall, low chroma so cargo pops
     const C = CC.CONFIG.COLORS, W = CC.CONFIG.W, H = CC.CONFIG.H;
     ctx.fillStyle = C.BG_Wall; ctx.fillRect(0, 0, W, H);

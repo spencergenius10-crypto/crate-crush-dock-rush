@@ -34,4 +34,12 @@ CC.Audio = class {
   sting() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => this._tone(f, 0.25, 'triangle', 0.16), i * 70)); }
   coin() { this._tone(1200, 0.08, 'square', 0.06, 1800); }
   fail() { this._tone(220, 0.4, 'sawtooth', 0.12, 80); }
+
+  // Kade audio — hook points fired from gameplay (see `// Kade audio` call sites). No-ops until the
+  // SFX / dynamic-groove pack lands here; gameplay never depends on them.
+  smash(kind, big) {}   // kind: wood | metal | ice · big = crate broke (else a hit)
+  snap(perfect) {}      // cargo seated in the right lane; perfect = dead-center landing
+  chime(tier) {}        // escalating combo chime: streak step index (1, 2, 3 …)
+  error(kind) {}        // kind: spill | unstable | ice | wrong_lane
+  fever(tier) {}        // flow/fever tier entered (1 = 2×, 2 = 3×, 3 = 5×); 0 = dropped out
 };

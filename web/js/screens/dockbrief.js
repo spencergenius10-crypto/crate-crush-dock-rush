@@ -21,7 +21,8 @@ CC.DockBriefScreen = class {
     const C = CC.CONFIG.COLORS, W = CC.CONFIG.W, p = this.g.p;
     CC.UI.stageBackdrop(ctx);
     CC.UI.dim(ctx, 0.35);
-    CC.UI.header(ctx, this.lv.name.toUpperCase(), `${this.lv.bandLabel} · attempt ${(p.attempts[this.lv.id] || 0) + 1}`);
+    const ch = p.challenge && p.challenge.n === this.lv.n ? p.challenge : null;
+    CC.UI.header(ctx, this.lv.name.toUpperCase(), `${this.lv.bandLabel} · attempt ${(p.attempts[this.lv.id] || 0) + 1}${ch ? ` · CHALLENGE: beat ${ch.score}` : ''}`);
     // lane layout silhouette
     const lanes = Math.min(this.lv.types.length, p.upg_lanes);
     const laneW = 440 / lanes;

@@ -30,6 +30,21 @@ CC.CONFIG = {
   REVIVE_TIME_BONUS_S: 20,
   SWAP_LANE_PERIOD_S: 2.6,
 
+  // Hazards
+  TIMED_FUSE_S: 2.5,          // unstable cargo must be seated within this window
+  FROZEN_DOUBLE_TAP_S: 0.45,  // second tap must land inside this window to shatter the ice
+  GOLDEN_SCORE_MULT: 3,
+
+  // Conveyor ramp / erratic feed as streak climbs (Sort)
+  RAMP: { streakStart: 3, streakFull: 15, cadenceMin: 0.55, waitMin: 0.7, jitterMax: 110, slideVx: 260 },
+
+  // Flow / Fever (0..1, decaying). Tiers → score multiplier 2× / 3× / 5×
+  FEVER: {
+    tiers: [0.3, 0.6, 0.9], mults: [1, 2, 3, 5],
+    gainSort: 0.12, gainPerfect: 0.05, gainGolden: 0.2, gainSmash: 0.03, gainBreak: 0.05,
+    decayBase: 0.05, decayHigh: 0.08, idleMult: 1.4, missMult: 0.45,
+  },
+
   COLORS: {
     BG_Dock: '#3a4250',
     BG_DockDark: '#2c3340',
