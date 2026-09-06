@@ -26,6 +26,10 @@ html, body {
   image-rendering: auto;
   box-shadow: 0 0 0 1px #000, 0 20px 60px rgba(0,0,0,.6);
 }
+/* phones: the stage fills the viewport — skip the 60px blurred shadow (pure compositor cost, never visible) */
+@media (max-width: 640px), (max-height: 640px) {
+  #game { box-shadow: none; }
+}
 
 #devToggle {
   position: fixed;

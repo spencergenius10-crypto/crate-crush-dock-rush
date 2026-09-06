@@ -11,11 +11,16 @@ CC.Input = class {
     this.downAt = 0;
     this.samples = []; // {t,x,y} for velocity
     this.pointerId = null;
+    // latency probe (dev panel): event.timeStamp → handler entry, and handler cost, both in ms
+    this.lat = { age: 0, handler: 0, worstAge: 0, worstHandler: 0 };
 
     const opts = { passive: false };
-    canvas.addEventListener('pointerdown', (e) => this._down(e), opts);
-    canvas.addEventListener('pointermove', (e) => this._move(e), opts);
-    canvas.addEventListener('pointerup', (e) => this._up(e), opts);
+    canvas.addEventListener('pointerdown', (e) => this._timed(e, () => this._down(e)), opts);
+    // pointermove is coalesced to the frame on Chrome/Android; pointerrawupdate delivers samples as they
+    // arrive, so a drag reads the freshest finger position when the next frame simulates.
+    const moveEvt = 'onpointerrawupdate' in window ? 'pointerrawupdate' : 'pointermove';
+    canvas.addEventListener(moveEvt, (e) => this._timed(e, () => this._move(e)), opts);
+    canvas.addEventListener('pointerup', (e) => this._timed(e, () => this._up(e)), opts);
     canvas.addEventListener('pointercancel', (e) => this._up(e), opts);
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     // Robustness: a release that lands off-canvas (or a lost capture) must never leave `down` stuck,
@@ -23,13 +28,31 @@ CC.Input = class {
     window.addEventListener('pointerup', (e) => { if (this.down) this._up(e, true); }, opts);
     window.addEventListener('pointercancel', (e) => { if (this.down) this._up(e, true); }, opts);
     window.addEventListener('blur', () => { if (this.down) this._end(this.x, this.y); });
+    // getBoundingClientRect forces style/layout; the canvas only moves on resize/scroll, so cache it.
+    this.rect = null;
+    const invalidate = () => { this.rect = null; };
+    window.addEventListener('resize', invalidate);
+    window.addEventListener('scroll', invalidate, { passive: true });
+    window.addEventListener('orientationchange', invalidate);
     this.lastEvent = 'none';
   }
 
+  _timed(e, fn) {
+    const t0 = performance.now();
+    fn();
+    const l = this.lat;
+    l.age = Math.max(0, t0 - e.timeStamp); l.handler = performance.now() - t0;
+    if (l.age > l.worstAge) l.worstAge = l.age;
+    if (l.handler > l.worstHandler) l.worstHandler = l.handler;
+  }
+  invalidateRect() { this.rect = null; }
   toLogical(e) {
-    const r = this.canvas.getBoundingClientRect();
-    const sx = CC.CONFIG.W / r.width, sy = CC.CONFIG.H / r.height;
-    return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
+    let r = this.rect;
+    if (!r) {
+      const b = this.canvas.getBoundingClientRect();
+      r = this.rect = { left: b.left, top: b.top, sx: CC.CONFIG.W / (b.width || 1), sy: CC.CONFIG.H / (b.height || 1) };
+    }
+    return { x: (e.clientX - r.left) * r.sx, y: (e.clientY - r.top) * r.sy };
   }
 
   // Programmatic injection (bot / tests) uses logical coordinates directly.

@@ -59,7 +59,12 @@ CC.Bot = class {
     }
     if (run.phaseName === 'smash') {
       const alive = run.smash.crates.filter((c) => c.alive);
-      if (alive.length) { const c = CC.U.pick(alive); this.g.input.tap(c.x + c.w / 2, c.y + c.h / 2); this.wait = 0.09; }
+      if (alive.length) {
+        const c = CC.U.pick(alive), cx = c.x + c.w / 2, cy = c.y + c.h / 2;
+        this.g.input.tap(cx, cy);
+        if (c.frozen) this.g.input.tap(cx, cy); // frozen crate: the rule is a double tap
+        this.wait = 0.09;
+      }
       return;
     }
     if (run.phaseName === 'sort') {

@@ -10,7 +10,7 @@ CC.PhaseTruck = class {
       const cols = Math.max(2, Math.floor(l.w / 44));
       l.seated.forEach((s, i) => {
         const col = i % cols, row = Math.floor(i / cols);
-        this.items.push({ type: s.type, lane: l, x: l.x + 22 + col * ((l.w - 44) / (cols - 1 || 1)), y: l.y + l.h - 22 - row * 24 });
+        this.items.push({ type: s.type, golden: s.golden, lane: l, x: l.x + 22 + col * ((l.w - 44) / (cols - 1 || 1)), y: l.y + l.h - 22 - row * 24 });
       });
     }
     // load top rows first so lanes visibly drain
@@ -30,19 +30,20 @@ CC.PhaseTruck = class {
         const it = this.items[this.i++];
         // remove from lane seats as it launches
         it.lane.seated.pop();
-        this.flyers.push({ type: it.type, x0: it.x, y0: it.y, x1: T.x + T.w / 2 + CC.U.rand(-40, 40), y1: T.y + T.h / 2 - 6, k: 0 });
-        this.g.fx.suck(it.x, it.y, T.x + T.w / 2, T.y + T.h / 2, it.type.color);
+        this.flyers.push({ type: it.type, golden: it.golden, x0: it.x, y0: it.y, x1: T.x + T.w / 2 + CC.U.rand(-40, 40), y1: T.y + T.h / 2 - 6, k: 0 });
+        this.g.fx.suck(it.x, it.y, T.x + T.w / 2, T.y + T.h / 2, it.golden ? '#ffd65a' : it.type.color);
         this.t -= this.per;
       }
       for (let j = this.flyers.length - 1; j >= 0; j--) {
         const f = this.flyers[j]; f.k += dt / 0.3;
         if (f.k >= 1) {
           this.flyers.splice(j, 1); this.filled++;
-          this.g.fx.doShake(1.5); this.g.audio.thud();
+          this.g.fx.doShake(1.5); this.g.audio.thud(); // Kade audio (truck load thud)
           if (this.filled >= this.total) {
             this.state = 'full'; this.fullT = 0; this.run.ftueText = null;
             this.g.fx.sting(T.x + T.w / 2, T.y + T.h / 2);
-            this.g.audio.sting();
+            this.g.audio.sting(); // Kade audio (truck clear whoosh/sting)
+            this.g.audio.whoosh();
           }
         }
       }
@@ -62,7 +63,7 @@ CC.PhaseTruck = class {
     for (const f of this.flyers) {
       const k = CC.U.easeInQuad(f.k);
       const x = CC.U.lerp(f.x0, f.x1, k), y = CC.U.lerp(f.y0, f.y1, k);
-      CC.drawCargo(ctx, f.type, x, y, 34 * (1 - k * 0.5), 'airborne', { squash: { x: 0.8, y: 1.3 } });
+      CC.drawCargo(ctx, f.type, x, y, 34 * (1 - k * 0.5), 'airborne', { squash: { x: 0.8, y: 1.3 }, golden: f.golden });
     }
     if (this.state === 'loading') {
       CC.U.text(ctx, 'LOADING', W / 2, 470, { size: 30, weight: 900, color: C.Text_Secondary, stroke: C.Outline, strokeWidth: 7 });
