@@ -15,16 +15,18 @@ CC.getLevel = function (n) {
     types = ordered.slice(0, band.types);
   }
 
-  const crates = CC.U.clamp(6 + Math.floor((n - 1) / 2), 6, 16);
+  // ~25–35s target clear: 6→12 crates × 2 cargo. Timer derives from content once pressure starts (D13+).
+  const crates = CC.U.clamp(6 + Math.floor((n - 1) / 3), 6, 12);
+  const cargoPerCrate = 2;
   const metalPct = n >= 13 ? CC.U.clamp(0.15 + (n - 13) * 0.02, 0.15, 0.6) : 0;
-  const timer = n <= 12 ? 60 : n <= 20 ? 45 : n <= 35 ? 40 : 35;
+  const timer = n <= 12 ? 60 : Math.round((8 + crates * cargoPerCrate * 1.55) * (n >= 36 ? 0.92 : 1));
 
   return {
     n, id, band: band.id, bandLabel: band.label,
     name: `Dock ${CC.U.pad2(n)}`,
     types,
     crates,
-    cargoPerCrate: 2,
+    cargoPerCrate,
     metalPct,
     timer,
     spillsAllowed: CC.CONFIG.SPILLS_ALLOWED,

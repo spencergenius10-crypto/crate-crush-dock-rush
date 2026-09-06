@@ -65,7 +65,7 @@ CC.HubScreen = class {
         CC.drawCargo(ctx, t, 80, y + 42, 44, 'idle');
         CC.U.text(ctx, t.name.toUpperCase(), 130, y + 30, { size: 20, weight: 900, align: 'left' });
         CC.U.text(ctx, `${t.asset} · type ${t.id}`, 130, y + 56, { size: 12, weight: 600, align: 'left', color: C.Text_Secondary });
-        const seen = i < CC.getLevel(Math.max(1, p.nextLevel - 1)).types.length || p.nextLevel > 5;
+        const seen = !!p.cargoSeen[t.id];
         CC.U.text(ctx, seen ? 'LOGGED' : 'UNSEEN', 480, y + 42, { size: 13, weight: 800, align: 'right', color: seen ? C.Safe : C.Text_Secondary });
       });
       CC.U.text(ctx, `shards ${p.shards} · pages unlock with shards (not in prototype)`, W / 2, 660, { size: 13, weight: 600, color: C.Text_Secondary });

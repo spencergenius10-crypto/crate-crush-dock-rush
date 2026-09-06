@@ -12,6 +12,7 @@ CC.Save = class {
       upg_smash: 1, upg_lanes: 2, upg_sort: 1,
       talents: {},                 // filter_glove, bounce_dampen, spill_magnet, streak_shield, idle_cap_plus1h
       cosmetics: {},               // starter_kit etc. (no power)
+      cargoSeen: {},               // Cargo Book: type id -> true once released from a crate
       haulTokens: 0,
       nextLevel: 1,
       cleared: {},                 // level_id -> clear count

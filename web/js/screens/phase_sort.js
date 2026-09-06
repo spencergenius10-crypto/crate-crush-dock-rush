@@ -14,8 +14,9 @@ CC.PhaseSort = class {
     this.t = 0;
     this.pendingFail = null;
     this.paused = false;
-    this.cadence = 0.5 / (1 + 0.12 * (p.upg_sort - 1));
+    this.cadence = 0.32 / (1 + 0.12 * (p.upg_sort - 1));
     this.flingMul = 1 + 0.1 * (p.upg_sort - 1);
+    this.flightT = 0.34 / this.flingMul; // assisted (tap-a-lane) flight time
     this.edgeTol = 16 + (p.talents.spill_magnet ? 22 : 0);
     this.bounceLoss = p.talents.bounce_dampen ? 0.25 : 0.5;
     this.grabbed = false;
@@ -23,12 +24,13 @@ CC.PhaseSort = class {
     for (const l of this.run.lanes) l.flashT = 0.6;
   }
   resume() { this.paused = false; this.pendingFail = null; if (!this.active) this.spawnT = 0.4; }
+  swapPeriod(lane) { return lane.types.length >= 3 ? 1.9 : CC.CONFIG.SWAP_LANE_PERIOD_S; }
 
   remaining() { return this.queue.length + (this.active ? 1 : 0); }
 
   spawn() {
     const type = this.queue.shift();
-    this.active = { type, x: 270 + CC.U.rand(-30, 30), y: 380, vx: 0, vy: 0, state: 'drop', waitT: 0, rot: 0, sq: { x: 1, y: 1 }, bounced: false };
+    this.active = { type, x: 270 + CC.U.rand(-30, 30), y: 430, vx: 0, vy: 0, state: 'drop', waitT: 0, rot: 0, sq: { x: 1, y: 1 }, bounced: false };
   }
 
   // ---- input → fling ----
@@ -47,7 +49,7 @@ CC.PhaseSort = class {
     const l = this.run.lanes[idx]; if (!l) return false;
     const tx = l.x + l.w / 2 + (noisy ? CC.U.rand(-l.w * 0.35, l.w * 0.35) : 0);
     const ty = l.y + 6;
-    const T = 0.42 / this.flingMul;
+    const T = this.flightT;
     const g = CC.CONFIG.GRAVITY;
     const vx = (tx - a.x) / T, vy = (ty - a.y) / T - 0.5 * g * T;
     a.vx = vx; a.vy = vy; a.state = 'fly'; this.grabbed = false; this.highlightLane = null;
@@ -158,12 +160,12 @@ CC.PhaseSort = class {
     // swap lanes (types > lane slots) cycle their accepted type on a visible timer
     for (const l of run.lanes) if (l.types.length > 1) {
       l.swapT += dt;
-      if (l.swapT >= CC.CONFIG.SWAP_LANE_PERIOD_S) { l.swapT = 0; l.activeIdx = (l.activeIdx + 1) % l.types.length; l.flashT = 0.3; }
+      if (l.swapT >= this.swapPeriod(l)) { l.swapT = 0; l.activeIdx = (l.activeIdx + 1) % l.types.length; l.flashT = 0.3; }
     }
     for (let i = this.spilled.length - 1; i >= 0; i--) { this.spilled[i].t += dt; if (this.spilled[i].t > 1.2) this.spilled.splice(i, 1); }
     for (let i = this.seatAnims.length - 1; i >= 0; i--) {
       const s = this.seatAnims[i]; s.t += dt;
-      if (s.t >= 0.22) { s.lane.seated.push({ type: s.type }); s.lane.fill++; this.seatAnims.splice(i, 1); }
+      if (s.t >= 0.16) { s.lane.seated.push({ type: s.type }); s.lane.fill++; this.seatAnims.splice(i, 1); }
     }
     if (this.pendingFail != null) {
       this.pendingFail -= dt;
@@ -182,11 +184,12 @@ CC.PhaseSort = class {
     switch (a.state) {
       case 'drop': {
         a.y += (a.vy + 0.5 * g * dt) * dt; a.vy += g * dt;
-        if (a.y >= CC.CONFIG.CONVEYOR_Y) { a.y = CC.CONFIG.CONVEYOR_Y; a.vy = -a.vy * 0.3; a.sq = { x: 1.25, y: 0.75 }; if (Math.abs(a.vy) < 80) { a.vy = 0; a.state = 'wait'; } }
+        if (a.y >= CC.CONFIG.CONVEYOR_Y) { a.y = CC.CONFIG.CONVEYOR_Y; a.vy = -a.vy * 0.3; a.sq = { x: 1.25, y: 0.75 }; if (Math.abs(a.vy) < 160) { a.vy = 0; a.state = 'wait'; } }
         break;
       }
       case 'wait': {
-        a.waitT += dt;
+        // conveyor clock only runs while some lane can take this piece (swap lanes never make a dock unwinnable)
+        if (run.lanes.some((l) => run.laneAccepts(l, a.type))) a.waitT += dt;
         a.y = CC.CONFIG.CONVEYOR_Y + Math.sin(this.t * 5) * 3;
         if (a.waitT > this.run.lv.sortWait) this.timeoutSpill(a);
         break;
@@ -237,7 +240,7 @@ CC.PhaseSort = class {
     // spilled (state: spill)
     for (const s of this.spilled) { ctx.globalAlpha = 1 - s.t / 1.2; CC.drawCargo(ctx, s.type, s.x, s.y, 40, 'spill'); ctx.globalAlpha = 1; }
     // seating animation
-    for (const s of this.seatAnims) { const k = s.t / 0.22; CC.drawCargo(ctx, s.type, s.x, s.y + k * 60, 40 - k * 14, 'seat'); }
+    for (const s of this.seatAnims) { const k = s.t / 0.16; CC.drawCargo(ctx, s.type, s.x, s.y + k * 60, 40 - k * 14, 'seat'); }
     // active cargo
     const a = this.active;
     if (a) {

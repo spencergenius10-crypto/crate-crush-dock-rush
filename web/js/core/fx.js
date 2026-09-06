@@ -30,7 +30,7 @@ CC.FX = class {
       const a = Math.random() * Math.PI * 2, sp = CC.U.rand(160, big ? 520 : 320);
       this.particles.push({ kind: 'spark', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: CC.U.rand(0.25, 0.5), t: 0, r: CC.U.rand(3, big ? 7 : 5), color: color || CC.CONFIG.COLORS.Accent_Smash });
     }
-    this.particles.push({ kind: 'ring', x, y, life: big ? 0.35 : 0.22, t: 0, r0: big ? 30 : 16, r1: big ? 150 : 70, color: color || CC.CONFIG.COLORS.Accent_Smash });
+    this.particles.push({ kind: 'ring', x, y, life: big ? 0.3 : 0.2, t: 0, r0: big ? 26 : 14, r1: big ? 105 : 56, color: color || CC.CONFIG.COLORS.Accent_Smash });
     if (big) { this.doFlash(0.35, '#ffd18a'); this.doHitStop(0.045); this.doShake(6); this.haptic(30); }
     else { this.doHitStop(0.02); this.haptic(10); }
   }

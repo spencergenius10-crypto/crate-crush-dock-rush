@@ -200,12 +200,11 @@ CC.DockRunScreen = class {
         if (sy > l.y + 18) CC.drawCargo(ctx, s.type, sx, sy, 22, 'seat');
       });
       // fill meter (ratio from systems: seated / expected of this lane)
-      const expected = this.cargoQueue.length ? 0 : 0;
       const exp = this.laneExpected(l);
       CC.drawAsset('CC_DockRush_Lane_FillMeter_v1', ctx, l.x + l.w - 14, l.y + 14, 8, l.h - 28, { ratio: exp ? l.seated.length / exp : 0, color: type.color });
       // swap-lane indicator
       if (l.types.length > 1) {
-        const k = 1 - (l.swapT / CC.CONFIG.SWAP_LANE_PERIOD_S);
+        const k = 1 - (l.swapT / this.sort.swapPeriod(l));
         ctx.strokeStyle = C.Warn; ctx.lineWidth = 4;
         ctx.beginPath(); ctx.arc(l.x + 18, l.y + 22, 9, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k); ctx.stroke();
         CC.U.text(ctx, '↻', l.x + 18, l.y + 22, { size: 12, weight: 900, color: C.Warn });

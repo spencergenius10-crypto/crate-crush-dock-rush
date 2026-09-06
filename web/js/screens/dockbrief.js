@@ -32,8 +32,11 @@ CC.DockBriefScreen = class {
       CC.drawAsset('CC_DockRush_Lane_Rim_v1', ctx, 50 + i * laneW + 6, 400, laneW - 12, 170, { color: t.color, type: t });
       if (extra.length > 1) CC.U.text(ctx, '↻ ' + extra.map((x) => x.id).join('/'), 50 + i * laneW + laneW / 2, 548, { size: 12, weight: 800, color: C.Warn });
     }
-    // crates silhouette (no numbers)
-    for (let i = 0; i < this.lv.crates; i++) CC.drawAsset('CC_DockRush_Crate_Wood_Closed_v1', ctx, 60 + (i % 8) * 54, 220 + Math.floor(i / 8) * 54, 46, 46);
+    // crates silhouette (no numbers) — stacked left of the truck bay
+    for (let i = 0; i < this.lv.crates; i++) {
+      const col = i % 4, row = Math.floor(i / 4);
+      CC.drawAsset('CC_DockRush_Crate_Wood_Closed_v1', ctx, 60 + col * 48, 250 - row * 46, 42, 42);
+    }
     // truck
     CC.drawAsset('CC_DockRush_Truck_Bay_v1', ctx, CC.CONFIG.TRUCK.x, CC.CONFIG.TRUCK.y, CC.CONFIG.TRUCK.w, CC.CONFIG.TRUCK.h, { ratio: 0 });
     // cargo icons

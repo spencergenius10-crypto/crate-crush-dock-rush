@@ -70,6 +70,7 @@ CC.PhaseSmash = class {
     this.run.ftueDone('smash');
     // release cargo → pile (queue)
     c.cargo.forEach((type, i) => {
+      this.g.p.cargoSeen[type.id] = true;
       this.pops.push({ type, x: cx + (i - 0.5) * 20, y: cy, vx: CC.U.rand(-60, 60) + (i - 0.5) * 120, vy: CC.U.rand(-620, -480), t: 0, life: 0.55, tx: 270 + CC.U.rand(-40, 40), ty: 400 });
     });
     if (this.crates.every((k) => !k.alive)) this.doneT = 0.5;
