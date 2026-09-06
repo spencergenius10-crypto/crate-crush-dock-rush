@@ -28,15 +28,15 @@ CC.Share = {
 
   // ---- copy ----
   text(kind, ch) {
-    const dock = `Dock ${CC.U.pad2(ch.n)}`;
+    const dock = `Dock ${CC.U.pad2(ch.n)}`, brand = `${CC.BRAND.game} (${CC.BRAND.mode} mode)`;
     if (kind === 'challenge') {
       return ch.cleared
-        ? `I challenge you: beat my ${ch.score} haul on ${dock} in Crate Crush: Dock Rush.`
-        : `I challenge you: clear ${dock} in Crate Crush: Dock Rush — I got ${ch.score} and spilled out.`;
+        ? `I challenge you: beat my ${ch.score} haul on ${dock} in ${brand}.`
+        : `I challenge you: clear ${dock} in ${brand} — I got ${ch.score} and spilled out.`;
     }
     return ch.cleared
-      ? `Crate Crush: Dock Rush — ${ch.score} haul on ${dock}, streak ${ch.streak}, ${ch.time}s. Beat it?`
-      : `Crate Crush: Dock Rush — ${dock} beat me at ${ch.score}. Your turn.`;
+      ? `${brand} — ${ch.score} haul on ${dock}, streak ${ch.streak}, ${ch.time}s. Beat it?`
+      : `${brand} — ${dock} beat me at ${ch.score}. Your turn.`;
   },
 
   // ---- delivery: web share → clipboard → prompt. Resolves with the method that worked. ----
@@ -78,8 +78,7 @@ CC.Share = {
     ctx.fillStyle = C.BG_UI; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = '#20262f'; for (let i = 0; i < 6; i++) ctx.fillRect(i * 90 + 4, 0, 82, H);
     CC.drawAsset('CC_DockRush_Crate_Wood_Closed_v1', ctx, W / 2 - 50, 120, 100, 100);
-    CC.U.text(ctx, 'CRATE CRUSH', W / 2, 270, { size: 40, weight: 900, color: C.Warn, stroke: C.Outline, strokeWidth: 8 });
-    CC.U.text(ctx, 'DOCK RUSH', W / 2, 312, { size: 26, weight: 900, stroke: C.Outline, strokeWidth: 6 });
+    CC.UI.brandLockup(ctx, W / 2, 270, { size: 40 });
     CC.UI.panel(ctx, 50, 370, 440, 400, { stroke: ch.cleared ? C.Safe : C.Fail });
     CC.U.text(ctx, ch.cleared ? 'DOCK CLEAR' : 'DOCK FAILED', W / 2, 420, { size: 38, weight: 900, color: ch.cleared ? C.Warn : C.Fail, stroke: C.Outline, strokeWidth: 7 });
     CC.U.text(ctx, `DOCK ${CC.U.pad2(ch.n)}`, W / 2, 458, { size: 16, weight: 800, color: C.Text_Secondary });
@@ -103,7 +102,7 @@ CC.Share = {
       try {
         this.renderCard(ch, opts).toBlob((blob) => {
           if (!blob || typeof File === 'undefined') return resolve(null);
-          resolve(new File([blob], `dockrush-D${CC.U.pad2(ch.n)}-${ch.score}.png`, { type: 'image/png' }));
+          resolve(new File([blob], `crate-crush-dockrush-D${CC.U.pad2(ch.n)}-${ch.score}.png`, { type: 'image/png' }));
         }, 'image/png');
       } catch (_) { resolve(null); }
     });

@@ -7,11 +7,13 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#12151b" />
-  <meta name="description" content="Smash crates, sort cargo, fill the truck. Free browser game — no install, no ads." />
-  <meta property="og:title" content="Crate Crush: Dock Rush" />
-  <meta property="og:description" content="Smash → sort → truck. Beat my haul score — play free in your browser." />
+  <meta name="description" content="Crate Crush — Mode: Dock Rush. Smash crates, sort cargo, fill the truck. Free browser game — no install, no ads." />
+  <meta property="og:title" content="Crate Crush — Mode: Dock Rush" />
+  <meta property="og:description" content="Smash → sort → truck. Beat my haul score — play Crate Crush free in your browser." />
   <meta property="og:type" content="website" />
-  <title>Crate Crush: Dock Rush</title>
+  <meta name="application-name" content="Crate Crush" />
+  <meta name="apple-mobile-web-app-title" content="Crate Crush" />
+  <title>Crate Crush — Mode: Dock Rush</title>
   <!-- app icon: Chief-locked asset LOCKED-dock-rush-app-icon-1024.png drops in at icons/app-icon-1024.png (see icons/README.md) -->
   <link rel="icon" type="image/png" sizes="1024x1024" href="icons/app-icon-1024.png" />
   <link rel="apple-touch-icon" href="icons/app-icon-1024.png" />
@@ -20,7 +22,7 @@
 </head>
 <body>
   <div id="wrap">
-    <canvas id="game" width="540" height="960" aria-label="Crate Crush: Dock Rush"></canvas>
+    <canvas id="game" width="540" height="960" aria-label="Crate Crush — Mode: Dock Rush"></canvas>
   </div>
 
   <!-- DOM dev tooling lives outside the game canvas; never drawn mid Smash/Sort. Panel code is lazy-loaded. -->
@@ -53,6 +55,7 @@
   <script defer src="js/screens/phase_truck.js"></script>
   <script defer src="js/screens/overlay_revive.js"></script>
   <script defer src="js/screens/overlay_results.js"></script>
+  <script defer src="js/screens/round_events.js"></script>
   <script defer src="js/screens/dockrun.js"></script>
   <script defer src="js/screens/upgrade.js"></script>
   <!-- dev chunk (js/dev/*) is loaded on demand by CC.loadDev — see main.js -->

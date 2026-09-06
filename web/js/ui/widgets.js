@@ -60,6 +60,24 @@ CC.UI = {
     CC.U.text(ctx, title, CC.CONFIG.W / 2, 60, { size: 30, weight: 900 });
     if (subtitle) CC.U.text(ctx, subtitle, CC.CONFIG.W / 2, 92, { size: 14, weight: 600, color: C.Text_Secondary });
   },
+  // Brand lockup: "CRATE CRUSH" + the Mode chip. Dock Rush is a Mode of Crate Crush, never the game name.
+  modeChip(ctx, cx, cy, opts) {
+    opts = opts || {};
+    const C = CC.CONFIG.COLORS, size = opts.size || 11;
+    const label = opts.label || CC.BRAND.chip;
+    ctx.font = `900 ${size}px system-ui, sans-serif`;
+    const w = ctx.measureText(label).width + 22, h = size + 12;
+    CC.U.fillRRect(ctx, cx - w / 2, cy - h / 2, w, h, h / 2, opts.fill || C.BG_UI2);
+    CC.U.strokeRRect(ctx, cx - w / 2, cy - h / 2, w, h, h / 2, opts.stroke || C.Warn, 2);
+    CC.U.text(ctx, label, cx, cy + 0.5, { size, weight: 900, color: opts.color || C.Warn });
+    return w;
+  },
+  brandLockup(ctx, cx, y, opts) {
+    opts = opts || {};
+    const C = CC.CONFIG.COLORS, size = opts.size || 40;
+    CC.U.text(ctx, CC.BRAND.game.toUpperCase(), cx, y, { size, weight: 900, color: C.Warn, stroke: C.Outline, strokeWidth: Math.round(size * 0.2) });
+    CC.UI.modeChip(ctx, cx, y + size * 0.95, { size: Math.max(11, Math.round(size * 0.36)), label: 'MODE: ' + CC.BRAND.mode.toUpperCase() });
+  },
   stageBackdrop(ctx) {
     // Static every frame → paint once into an offscreen canvas, then a single drawImage per frame.
     let bd = CC.UI._backdrop;

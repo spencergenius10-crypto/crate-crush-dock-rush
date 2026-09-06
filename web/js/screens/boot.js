@@ -1,4 +1,4 @@
-/* SCR_Boot — Ratio / Crate Crush mark, one beat, tap to skip → SCR_Hub */
+/* SCR_Boot — Ratio / Crate Crush mark (+ Mode chip), one beat, tap to skip → SCR_Hub */
 window.CC = window.CC || {};
 
 CC.BootScreen = class {
@@ -13,11 +13,8 @@ CC.BootScreen = class {
     ctx.save(); ctx.translate(W / 2, H / 2 - 40); ctx.scale(k, k);
     CC.drawAsset('CC_DockRush_Crate_Wood_Closed_v1', ctx, -60, -60, 120, 120);
     ctx.restore();
-    if (this.t > 0.4) {
-      CC.U.text(ctx, 'CRATE CRUSH', W / 2, H / 2 + 60, { size: 40, weight: 900, color: C.Warn, stroke: C.Outline, strokeWidth: 8 });
-      CC.U.text(ctx, 'DOCK RUSH', W / 2, H / 2 + 104, { size: 30, weight: 900, stroke: C.Outline, strokeWidth: 6 });
-    }
-    CC.U.text(ctx, 'RATIO STUDIOS · PROTOTYPE ' + CC.CONFIG.APP_VER, W / 2, H - 60, { size: 13, weight: 600, color: C.Text_Secondary });
+    if (this.t > 0.4) CC.UI.brandLockup(ctx, W / 2, H / 2 + 60, { size: 44 });
+    CC.U.text(ctx, CC.BRAND.studio.toUpperCase() + ' · PROTOTYPE ' + CC.CONFIG.APP_VER, W / 2, H - 60, { size: 13, weight: 600, color: C.Text_Secondary });
     CC.U.text(ctx, 'tap to skip', W / 2, H - 36, { size: 12, weight: 600, color: '#5f6a7a' });
   }
 };

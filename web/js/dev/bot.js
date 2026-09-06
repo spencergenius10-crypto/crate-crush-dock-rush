@@ -60,23 +60,28 @@ CC.Bot = class {
     if (run.phaseName === 'smash') {
       const alive = run.smash.crates.filter((c) => c.alive);
       if (alive.length) {
-        const c = CC.U.pick(alive), cx = c.x + c.w / 2, cy = c.y + c.h / 2;
+        // weighted steel needs a burst of explicit taps on the SAME crate — commit to it until it opens
+        const steel = alive.find((c) => c.type === 'steel' && c.lift > 0) || alive.find((c) => c.type === 'steel');
+        const c = steel || CC.U.pick(alive), cx = c.x + c.w / 2, cy = c.y + c.h / 2;
         this.g.input.tap(cx, cy);
         if (c.frozen) this.g.input.tap(cx, cy); // frozen crate: the rule is a double tap
-        this.wait = 0.09;
+        this.wait = c.type === 'steel' ? 0.05 : 0.09;
       }
       return;
     }
     if (run.phaseName === 'sort') {
-      const s = run.sort, a = s.active;
-      if (!a || a.state !== 'wait' || s.paused) return;
+      const s = run.sort;
+      if (s.paused) return;
+      // multi-belt (Rush Hour): sort whichever piece is waiting; tap-a-lane flights are gentle so glass is safe
+      const a = s.pieces.find((p) => p.state === 'wait');
+      if (!a) return;
       const wantMiss = run.stats.revives === 0 && run.stats.spills < run.lv.spillsAllowed && run.stats.misses < 3;
       if (wantMiss) {
         const wrong = run.lanes.filter((l) => !run.laneAccepts(l, a.type));
-        if (wrong.length) { s.flingToLane(CC.U.pick(wrong).idx); this.say(`deliberate miss (${a.type.id})`); this.wait = 0.5; return; }
+        if (wrong.length) { s.flingToLane(CC.U.pick(wrong).idx, false, a); this.say(`deliberate miss (${a.type.id})`); this.wait = 0.5; return; }
       }
       const exp = run.expectedLaneFor(a.type);
-      if (exp && run.laneAccepts(exp, a.type)) { s.flingToLane(exp.idx, true); this.wait = 0.25; }
+      if (exp && run.laneAccepts(exp, a.type)) { s.flingToLane(exp.idx, true, a); this.wait = 0.25; }
       return;
     }
   }

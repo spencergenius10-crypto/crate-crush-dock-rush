@@ -60,6 +60,7 @@ CC.HubScreen = class {
     ctx.fillStyle = C.BG_UI; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = '#20262f'; for (let i = 0; i < 6; i++) ctx.fillRect(i * 90 + 4, 0, 82, H);
     const ch = this.tab === 'docks' ? p.challenge : null;
+    CC.UI.modeChip(ctx, W / 2, 22);
     CC.UI.header(ctx, 'WAREHOUSE HUB', ch ? null : this.tab === 'docks' ? 'pick your next dock' : this.tab === 'book' ? 'Cargo Book — collection (cosmetic, no power)' : 'settings');
     if (ch) CC.U.text(ctx, `CHALLENGE · beat ${ch.score} on DOCK ${CC.U.pad2(ch.n)}${ch.cleared ? '' : ' (friend spilled out)'}`, W / 2, 92, { size: 14, weight: 900, color: C.Warn });
     CC.UI.coinChip(ctx, W - 20, 20, p.coins, 'right');
@@ -79,6 +80,7 @@ CC.HubScreen = class {
       CC.U.text(ctx, `shards ${p.shards} · pages unlock with shards (not in prototype)`, W / 2, 660, { size: 13, weight: 600, color: C.Text_Secondary });
     } else {
       CC.U.text(ctx, 'Capture preset: audio off, HUD chrome minimal, FX ×1.35', W / 2, 460, { size: 13, weight: 600, color: C.Text_Secondary });
+      CC.U.text(ctx, `${CC.BRAND.full} · ${CC.CONFIG.APP_VER}`, W / 2, 620, { size: 12, weight: 700, color: C.Text_Secondary });
       CC.U.text(ctx, `user ${this.g.tlm.identity.user_id.slice(0, 8)}… · session ${this.g.tlm.session_id.slice(0, 8)}…`, W / 2, 640, { size: 12, weight: 600, color: '#5f6a7a' });
     }
     for (const b of this.buttons) b.draw(ctx);

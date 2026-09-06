@@ -29,7 +29,7 @@ CC.AssetSheetScreen = class {
       const x = x0 + c * cw, y = y0 + r * ch;
       target.fillStyle = C.BG_DockDark; target.fillRect(x, y, cw - 8, ch - 8);
       const a = CC.ASSETS[id];
-      const opts = { color: '#3d8bfd', type: CC.CARGO[1], ratio: 0.6, label: 'STREAK 12', full: false };
+      const opts = { color: '#3d8bfd', type: CC.CARGO[1], ratio: 0.6, label: 'STREAK 12', full: false, lift: 0.6, t: 1 };
       if (a.cat === 'Lane') CC.drawAsset(id, target, x + 26, y + 18, 60, 62, opts);
       else CC.drawAsset(id, target, x + 26, y + 12, 60, 60, opts);
       CC.U.text(target, id.replace('CC_DockRush_', '').replace('_v1', ''), x + (cw - 8) / 2, y + ch - 22, { size: 9, weight: 700, color: C.Text_Secondary });
