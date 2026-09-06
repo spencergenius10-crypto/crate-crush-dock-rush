@@ -12,7 +12,7 @@ CC.RoundEvents = class {
     this.pool = [];
     if (ev.rush) this.pool.push('rush_hour');
     if (ev.inspection) this.pool.push('inspection_shift');
-    this.poolIdx = 0;
+    this.poolIdx = Math.floor(Math.random() * Math.max(1, this.pool.length)); // random first event, then alternate
     this.active = null;   // { id, t, dur }
     this.warn = null;     // { id, t }
     this.nextT = CC.CONFIG.EVENTS.firstAt;

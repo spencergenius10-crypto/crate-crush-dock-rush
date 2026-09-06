@@ -54,7 +54,7 @@ CC.CONFIG = {
     period: [9, 14],            // seconds between the end of one event and the next warning
     warn: 1.4,
     minRemaining: 5,            // no event when fewer pieces than this are left to sort
-    rush: { dur: 8, belts: 2, cadenceMul: 0.55, waitMul: 0.85, slideVx: 320, feverGainMul: 1.25 },
+    rush: { dur: 8, belts: 2, cadenceMul: 0.55, waitMul: 0.85, slideVx: 220, feverGainMul: 1.25 },
     inspection: { dur: 8, mute: 0.88, swapAnimS: 0.45 },
     jackpot: { hp: 4, extraCargo: 2, score: 40, fever: 0.35 },
   },

@@ -319,14 +319,18 @@ CC.PhaseSort = class {
         case 'fly': {
           // exact constant-gravity step (frame-rate independent), then interpolate the lane-mouth crossing
           const px = a.x, py = a.y;
-          // magnet: below fromY, steer toward the nearest lane mouth inside the radius (whatever type it takes)
+          // magnet: below fromY, steer toward the lane mouth nearest to where the throw WOULD land (ballistic
+          // prediction, not current x) if that is inside the radius — whatever type that lane takes
           if (a.magnet && !a.assisted && a.y > M.fromY && a.vy > 0) {
-            let best = null, bd = M.radius;
-            for (const l of run.lanes) { const d = Math.abs(a.x - (l.x + l.w / 2)); if (d < bd) { bd = d; best = l; } }
-            a.magnetTarget = best;
-            if (best) {
-              const T = Math.max(0.05, (-a.vy + Math.sqrt(a.vy * a.vy + 2 * g * Math.max(1, L.y - a.y))) / g);
-              const want = (best.x + best.w / 2 - a.x) / T;
+            const T = Math.max(0.05, (-a.vy + Math.sqrt(a.vy * a.vy + 2 * g * Math.max(1, L.y - a.y))) / g);
+            const xl = a.magnetTarget ? a.magnetTarget.x + a.magnetTarget.w / 2 : CC.U.clamp(a.x + a.vx * T, CC.CONFIG.WALL_L, CC.CONFIG.WALL_R);
+            if (!a.magnetTarget) {
+              let best = null, bd = M.radius;
+              for (const l of run.lanes) { const d = Math.abs(xl - (l.x + l.w / 2)); if (d < bd) { bd = d; best = l; } }
+              a.magnetTarget = best; // locked once chosen so the pull never flips lanes mid-air
+            }
+            if (a.magnetTarget) {
+              const want = (a.magnetTarget.x + a.magnetTarget.w / 2 - a.x) / T;
               a.vx += (want - a.vx) * Math.min(1, dt * M.strength);
             }
           }

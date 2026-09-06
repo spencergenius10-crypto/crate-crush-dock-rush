@@ -61,7 +61,7 @@ CC.DockRunScreen = class {
   setInspection(on) {
     this.inspection = !!on;
     const n = this.lanes.length;
-    for (const l of this.lanes) l.targetX = on && n > 1 ? this.lanes[(l.idx + 1) % n].homeX : l.homeX;
+    for (const l of this.lanes) { l.fromX = l.x; l.moveT = 0; l.targetX = on && n > 1 ? this.lanes[(l.idx + 1) % n].homeX : l.homeX; }
   }
   laneCurrent(lane) { return lane.types[lane.activeIdx]; }
   laneAccepts(lane, type) { return this.laneCurrent(lane).id === type.id; }
@@ -188,8 +188,12 @@ CC.DockRunScreen = class {
   update(dt) {
     this.t += dt;
     this.phaseSwapT += dt;
-    const slide = Math.min(1, dt / CC.CONFIG.EVENTS.inspection.swapAnimS * 3);
-    for (const l of this.lanes) { l.flashT = Math.max(0, l.flashT - dt); if (l.x !== l.targetX) { l.x += (l.targetX - l.x) * slide; if (Math.abs(l.x - l.targetX) < 0.5) l.x = l.targetX; } }
+    // Inspection Shift lane slide: timed ease-out tween so lanes land exactly on their slot
+    const animS = CC.CONFIG.EVENTS.inspection.swapAnimS;
+    for (const l of this.lanes) {
+      l.flashT = Math.max(0, l.flashT - dt);
+      if (l.x !== l.targetX) { l.moveT = Math.min(animS, (l.moveT || 0) + dt); l.x = CC.U.lerp(l.fromX, l.targetX, CC.U.easeOutCubic(l.moveT / animS)); }
+    }
     if (this.overlay) { this.overlay.update(dt); return; }
     this.elapsed += dt;
     this.feverFlashT = Math.max(0, this.feverFlashT - dt);
