@@ -67,6 +67,14 @@ for (const [name, content] of Object.entries(files)) {
   rows.push({ name, raw: buf.length, gz: gz.length, br: br.length });
 }
 
+// static passthrough: PWA manifest + icons (binary assets are copied as-is, no compression siblings needed)
+for (const rel of ['manifest.webmanifest']) if (fs.existsSync(path.join(WEB, rel))) fs.copyFileSync(path.join(WEB, rel), path.join(DIST, rel));
+if (fs.existsSync(path.join(WEB, 'icons'))) {
+  fs.mkdirSync(path.join(DIST, 'icons'), { recursive: true });
+  for (const f of fs.readdirSync(path.join(WEB, 'icons'))) if (!f.endsWith('.md')) fs.copyFileSync(path.join(WEB, 'icons', f), path.join(DIST, 'icons', f));
+}
+if (!fs.existsSync(path.join(WEB, 'icons', 'app-icon-1024.png'))) console.warn('WARN  web/icons/app-icon-1024.png missing — favicon / PWA icon will 404 until the locked asset is dropped (web/icons/README.md)');
+
 const kb = (n) => (n / 1024).toFixed(1).padStart(6) + ' KB';
 const srcTotal = appScripts.reduce((n, f) => n + fs.statSync(path.join(WEB, f)).size, 0) + (cssHref ? fs.statSync(path.join(WEB, cssHref)).size : 0) + Buffer.byteLength(html);
 console.log(`dist/  (${esbuild ? 'esbuild minify' : 'NO minify — run `npm i` for esbuild'})`);

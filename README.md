@@ -33,6 +33,8 @@ npm run build                # → dist/  (index.html + app.<hash>.js + dev.<has
 npm run serve                # serves dist/ with brotli/gzip negotiation + immutable caching, prints the phone URL
 ```
 
+**App icon / PWA**: `index.html` links favicon + `apple-touch-icon` and `manifest.webmanifest` (standalone portrait, `#12151b` splash) to `web/icons/app-icon-1024.png`. That PNG is the Chief-locked `LOCKED-dock-rush-app-icon-1024.png` and is **not in the repo yet** — drop it at that path (see `web/icons/README.md`); the build warns while it is missing.
+
 Deploy `dist/` to any static host. If the host can serve precompressed files (`gzip_static` / `brotli_static`, or a CDN that does it for you) the `.br`/`.gz` siblings are used as-is; otherwise ignore them and let the edge compress. `index.html` must be served `no-cache`; the hashed bundles are safe to cache forever.
 
 The canvas is a 540×960 portrait (9:16) stage and letterboxes to any window. Works with mouse or touch.
