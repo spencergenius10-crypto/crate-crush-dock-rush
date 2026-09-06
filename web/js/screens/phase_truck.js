@@ -16,7 +16,7 @@ CC.PhaseTruck = class {
     // load top rows first so lanes visibly drain
     this.items.sort((a, b) => a.y - b.y);
     this.total = this.items.length;
-    this.filled = 0; this.i = 0; this.t = 0.4; this.per = 0.07; this.flyers = []; this.state = 'loading'; this.fullT = 0;
+    this.filled = 0; this.i = 0; this.t = 0.4; this.per = 0.09; this.flyers = []; this.state = 'loading'; this.fullT = 0;
     this.g.sessionHints.sort = true;
   }
   ratio() { return this.total ? this.filled / this.total : 1; }
@@ -49,7 +49,7 @@ CC.PhaseTruck = class {
       if (this.total === 0) { this.state = 'full'; this.fullT = 0; }
     } else if (this.state === 'full') {
       this.fullT += dt;
-      if (this.fullT >= 1.3) { this.state = 'done'; this.run.onTruckFull(); }
+      if (this.fullT >= 1.6) { this.state = 'done'; this.run.onTruckFull(); }
     }
   }
 

@@ -29,7 +29,7 @@ CC.OverlayResults = class {
     const s = this.run.stats;
     this.buttons = [];
     if (this.cleared) {
-      this.buttons.push(new CC.Button({ id: 'res_double', x: 60, y: 690, w: 204, h: 68, label: '2× HAUL', sub: s.doubled ? 'claimed' : '▶ watch ad', size: 20, kind: 'ghost', enabled: !s.doubled, onTap: () => this.doubleHaul() }));
+      this.buttons.push(new CC.Button({ id: 'res_double', x: 60, y: 690, w: 204, h: 68, label: '2× HAUL', sub: s.doubled ? 'claimed' : 'watch an ad', size: 20, kind: 'ghost', enabled: !s.doubled, onTap: () => this.doubleHaul() }));
       this.buttons.push(new CC.Button({ id: 'res_continue', x: 276, y: 690, w: 204, h: 68, label: 'CONTINUE', sub: 'upgrade bay', size: 20, onTap: () => this.g.go('SCR_Upgrade') }));
     } else {
       this.buttons.push(new CC.Button({ id: 'res_retry', x: 60, y: 690, w: 260, h: 68, label: 'RETRY', sub: 'same dock', size: 22, onTap: () => this.g.go('DockRun', { levelN: this.run.lv.n }) }));
