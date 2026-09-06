@@ -1,6 +1,6 @@
 # Crate Crush: Dock Rush
 
-Ratio Studios — hybrid-casual prototype (browser / WebGL-canvas). **Status: playable DockRun loop + Kade telemetry green + mobile-web bundle (26 KB br) + Share Score / Challenge a Friend on Results.**
+Ratio Studios — hybrid-casual prototype (browser / WebGL-canvas). **Status (v2 arcade feel): playable DockRun loop + Kade telemetry green + hazard crates + Flow/Fever + juice + Share Run / Challenge a Friend + mobile-web bundle (≈30 KB br).**
 
 ```
 SCR_Boot → SCR_Hub → SCR_DockBrief → DockRun[ Phase_Smash → Phase_Sort → Phase_Truck | Overlay_Revive | Overlay_Results ] → SCR_Upgrade → SCR_Hub
@@ -41,21 +41,57 @@ The canvas is a 540×960 portrait (9:16) stage and letterboxes to any window. Wo
 
 | Phase | Input |
 |---|---|
-| Smash | **Tap** a crate (2 taps breaks a wood crate at Smash Lv1). **Hold** to auto-smash whatever is under your finger. |
-| Sort | **Drag** the waiting cargo and release toward a lane (flick = physics toss), **drop** it onto a lane mouth, or **tap a lane** to send it there. Cargo left on the conveyor too long rolls off (spill). |
+| Smash | **Tap** a crate (2 taps breaks a wood crate at Smash Lv1). **Hold** to auto-smash whatever is under your finger. **Frozen crate** (ice shell, `••` glyph): **double-tap** — two taps within 0.45 s shatter the ice, only then does damage land; holding never thaws. |
+| Sort | **Drag** the waiting cargo and release toward a lane (flick = physics toss), **drop** it onto a lane mouth, or **tap a lane** to send it there. Cargo left on the conveyor too long rolls off (spill). **Golden** cargo (gold halo) scores ×3. **Unstable** cargo (hazard band, blinking fuse) has a **2.5 s fuse** from the moment it lands — it keeps burning in your hand — and detonates into a spill. Dead-center landing = **PERFECT** (+5, haptic). |
 | Truck | Auto: lanes stream into the truck; tap to skip the FULL beat early. |
 | Revive | Watch ad (stub) / coins / free daily / decline. |
-| Results | **SHARE SCORE** / **CHALLENGE A FRIEND** (see below) · CONTINUE → Upgrade Bay (or 2× HAUL ad stub). Failed: RETRY same dock. |
+| Results | **SHARE RUN** / **CHALLENGE A FRIEND** (see below) · CONTINUE → Upgrade Bay (or 2× HAUL ad stub). Failed: RETRY same dock. |
+
+## v2 arcade feel — hazards, juice, Flow/Fever
+
+**Hazards** (`web/js/data/levels.js` → `lv.hazards`; none on FTUE docks D01–D03, each ramps slowly):
+
+| Hazard | From | Rule | Read |
+|---|---|---|---|
+| Frozen / Armor crate | D04 (15 % → 40 % of crates) | Ice shell absorbs hits. Two explicit taps inside `FROZEN_DOUBLE_TAP_S` = 0.45 s shatter it and the second tap lands as a real hit. Hold auto-repeat clinks but never thaws. | pale-blue shell + `••` glyph; cracks after tap 1; `THAWED` + ice shards; one-time `DOUBLE-TAP TO THAW` hint |
+| Golden / Priority cargo | D04 (12 % of pieces) | Seated in the right lane → `GOLDEN_SCORE_MULT` = ×3 score and a big fever push. Spilling it is a normal spill. | gold halo + glint, gold accept burst, `GOLDEN +N` |
+| Timed / Unstable cargo | D06 (12 % → 35 % of pieces) | `TIMED_FUSE_S` = 2.5 s from landing on the conveyor, keeps burning while grabbed, paused only in flight. Detonation = spill on the spot (`sort_miss.hazard = "unstable"`), streak breaks, fever halves; the piece returns to the pile stable. | hazard band + blinking fuse dot, countdown arc + seconds, red pulse in the last 40 % |
+| Conveyor ramp / erratic feed | streak 3 → 15 (`CONFIG.RAMP`) | Spawn cadence → 55 %, roll-off wait → 70 %, landing spot jitter ±30 → ±110 px, and above ~35 % ramp pieces arrive with a sideways shove that slides along the conveyor until friction stops it. A spill resets the streak, so the ramp resets with it. | pieces land off-center / sliding; `STREAK N` badge |
+
+**Juice** (`web/js/core/fx.js`): `splinters()` — long pointed shards that spin out, bounce once on the dock-floor line, skid and rest before fading (wood / metal / ice palettes); chips fill the middle. Micro-shake on heavy lane drops (scaled by impact speed), combo ≥ 3 breaks, fever tier-ups; the big beats (spill, truck FULL) keep their existing shake. Haptics via `navigator.vibrate` with one vocabulary: `hapticPerfect` `[12,20,24]`, `hapticStreak(step)` (tick `8`, step `[18,30,18,30,36]`), `hapticNearMiss` `[30,40,30]` on a rim-save, `hapticFever(tier)`. Settings → HAPTICS off disables all of it.
+
+**Flow / Fever** (`DockRun.fever`, 0..1, `CONFIG.FEVER`):
+- Builds: smash hit +0.03, break +0.05, correct sort +0.12, perfect +0.05, golden +0.20.
+- Decays only while on the clock (Smash/Sort): `0.05 + 0.08·fever` per second, ×1.4 with the finger off the glass. A miss/detonation multiplies it by 0.45.
+- Tiers at 0.3 / 0.6 / 0.9 → score multiplier **×2 / ×3 / ×5**. Entering a tier: `FEVER ×N` beat, lane flash, shake + flash scaled by tier, haptic pattern, `audio.fever(tier)`.
+- Visuals by tier: lane glow (layered translucent strokes — no `shadowBlur`, it is too expensive on mobile GPUs) with a pulse that speeds up per tier; lane floors tint at ×3; cargo trails go fever-colored at ×3; **ember trail** follows the piece at ×5. HUD: fever arc wraps the timer ring (tick marks at the thresholds), live `×N FEVER` chip, live `SCORE`.
+- Score: smash hit +2, break +5×min(combo,4), sort +10 (+5 perfect) (×3 golden) — all × the fever multiplier at that moment. **Haul score** on Results = coins + best streak×10 + crates×2 + time left + run score, so Fever/hazard play is what the Share/Challenge loop competes on. Coins are untouched (band table only).
+
+**Telemetry (additive)**: `dock_clear` / `dock_fail` carry `run_score`, `fever_peak_tier`, `golden_sorted`, `unstable_detonated`; `sort_miss` carries `hazard` when a fuse ran out. Must-ship events and required props are unchanged.
+
+**Audio hook sites (Kade owns `web/js/core/audio.js` + `web/audio/{sfx,music}/`).** Gameplay fires `CC.audio.*` at every beat; `audio.js` only gained no-op stubs for the names that did not exist, so nothing here depends on the pack landing. Every call site is marked `// Kade audio`:
+
+| Hook | Fired from |
+|---|---|
+| `smash(kind, big)` | crate hit / break (`wood` `metal`), ice shatter (`ice`, big) — `phase_smash.js` |
+| `snap(perfect)` | cargo seated in the right lane — `phase_sort.js` |
+| `whoosh()` | fling / tap-a-lane, Smash→Sort swap, truck FULL — `phase_sort.js`, `dockrun.js`, `phase_truck.js` |
+| `chime(tier)` | streak step reached (tier = step index); `chime(0)` on the Share/Challenge buttons — `phase_sort.js`, `overlay_results.js` |
+| `error(kind)` | `spill` `wrong_lane` `unstable` (fuse) `ice` (hit absorbed by a frozen shell) — `phase_sort.js`, `phase_smash.js` |
+| `fever(tier)` | fever tier entered, 1–3; `0` when it drops out — `dockrun.js` |
+| existing `thud` `crack` `pop` `splat` `sting` `coin` `fail` | unchanged synth calls remain beside the new hooks |
+
+`CC.audio` is the same instance as `CC.game.audio`. Audio stays default-off and the game reads fully muted (Vale mute rule).
 
 Useful URL flags: `?dev=1` (open dev panel), `?bot=1` (autoplay acceptance session), `?bot=1&autodownload=1` (also downloads the JSONL when done), `?sheet=1` (asset sheet), `?reset=1` (wipe profile + telemetry = fresh install), `?nodesync=1` (disable the low-latency `desynchronized` canvas hint if a device misbehaves). `#challenge=D03-412-7-31-c` in the hash is an inbound Challenge link (below).
 
-## Share Score / Challenge a Friend (organic loop — $0 ads, no paywall, no monetization)
+## Share Run / Challenge a Friend (organic loop — $0 ads, no paywall, no monetization)
 
 Both buttons sit on **Overlay_Results** (clear *and* fail) and go through `web/js/core/share.js`:
 
 | Button | What is shared | Delivery |
 |---|---|---|
-| **SHARE SCORE** | Brag copy (`… 412 haul on Dock 03, streak 7, 31s. Beat it?`) + a **PNG score card** (1080×1920 story-size, pre-rendered off-screen once the hero number finishes counting) + the Challenge link | Web Share API with `files` when `navigator.canShare({files})` → Web Share text/url → clipboard → `prompt()` |
+| **SHARE RUN** | Brag copy (`… 412 haul on Dock 03, streak 7, 31s. Beat it?`) + a **PNG score card** (1080×1920 story-size, pre-rendered off-screen once the hero number finishes counting) + the Challenge link | Web Share API with `files` when `navigator.canShare({files})` → Web Share text/url → clipboard → `prompt()` |
 | **CHALLENGE A FRIEND** | Challenge copy (`I challenge you: beat my 412 haul on Dock 03 …`) + the Challenge link | Web Share text/url → clipboard → `prompt()` |
 
 The share call runs synchronously inside the tap's `pointerup` handler (input is not queued to the next frame), so the browser's transient user activation is still valid — that is why the PNG is prepared ahead of time rather than awaited at tap time. A toast in the bottom-safe caption slot confirms `SHARED` / `LINK COPIED`; cancelling the share sheet is silent.
@@ -92,7 +128,7 @@ Audit of `main` and what changed. Measured in the same headless Chrome before/af
 
 | Area | Before | After |
 |---|---|---|
-| Critical path | 24 blocking `<script>` + CSS + HTML = **144 KB over 26 requests**, dev tooling always loaded | `defer` scripts in dev; `npm run build` → **26.5 KB brotli / 30.8 KB gzip over 2 requests** (`index.html` with inlined CSS + `app.<hash>.js`); dev tooling (`js/dev/*`, 3 KB br) is a separate chunk fetched only for `?dev` / `?bot` / `?sheet`, the DEV button or `` ` `` |
+| Critical path | 24 blocking `<script>` + CSS + HTML = **144 KB over 26 requests**, dev tooling always loaded | `defer` scripts in dev; `npm run build` → **29.5 KB brotli / 34.3 KB gzip over 2 requests** incl. all v2 systems (`index.html` with inlined CSS + `app.<hash>.js`); dev tooling (`js/dev/*`, 3 KB br) is a separate chunk fetched only for `?dev` / `?bot` / `?sheet`, the DEV button or `` ` `` |
 | Telemetry persist | `localStorage.setItem` of the whole ~1 MB JSONL ring buffer **synchronously on every event** — **7.8 ms per `smash` tap** with a full buffer (desktop), inside the pointer handler | Debounced to `requestIdleCallback` (400 ms `setTimeout` fallback), flushed on `session_end` / `pagehide` / download. **0.007 ms per emit.** Buffer semantics and JSONL output unchanged |
 | Pointer → logical coords | `getBoundingClientRect()` on every pointer event (forces style/layout) | Rect cached; invalidated on resize / scroll / orientation / `Game.resize()` |
 | Drag sampling | `pointermove` (coalesced to the frame on Chrome/Android) | `pointerrawupdate` when supported → the frame simulates from the freshest finger position; falls back to `pointermove` |
@@ -161,9 +197,10 @@ Everything is a procedural silhouette-first placeholder keyed by canonical ID in
 ```
 web/
   index.html            canvas + DOM dev panel; <script defer> order = load order (build bundles this list)
-  js/core/              config, util, input (tap/hold/drag/swipe + latency probe), fx, audio (synth, default off),
-                        telemetry (debounced persist), save, share (Share Score / Challenge link + PNG card)
-  js/data/              economy (CSV mirror), cargo types, levels D01–D50, CC_DockRush_* asset registry
+  js/core/              config (hazard/ramp/fever tunables), util, input (tap/hold/drag/swipe + latency probe),
+                        fx (bursts, splinters, haptic vocabulary), audio (Kade-owned; synth + hook stubs),
+                        telemetry (debounced persist), save, share (Share Run / Challenge link + PNG card)
+  js/data/              economy (CSV mirror), cargo types (+golden/timed draw), levels D01–D50 (+hazards), CC_DockRush_* assets
   js/ui/widgets.js      buttons / panels / HUD chips / stage backdrop (offscreen-cached)
   js/screens/           boot, hub, dockbrief, dockrun (+ phase_smash/sort/truck, overlay_revive/results), upgrade
   js/dev/               dev panel, autoplay bot, asset sheet — lazy chunk, not on the player's critical path
@@ -183,7 +220,8 @@ telemetry/sample-session.jsonl
 
 ## Verification done
 - Headless Chrome (Playwright) `?bot=1` run: 0 page errors; all 11 must-ship events in one session (`tools/verify-telemetry.mjs` green).
-- Mobile-web pass (headless Chrome via CDP, both `web/` source and the minified `dist/`): `?bot=1` still GREEN with 0 page errors; inbound `#challenge` link → `install.attribution`, `challenge_open`, Hub routing, D03 playable from a fresh install with `nextLevel` staying 1; real dispatched touch taps through smash; Results SHARE SCORE via stubbed Web Share carries the PNG + deep link, CHALLENGE A FRIEND falls back to clipboard; link round-trips through `CC.Share.decode`; DEV button lazy-loads the dev chunk. `check-economy` GREEN.
+- Mobile-web pass (headless Chrome via CDP, both `web/` source and the minified `dist/`): `?bot=1` still GREEN with 0 page errors; inbound `#challenge` link → `install.attribution`, `challenge_open`, Hub routing, D03 playable from a fresh install with `nextLevel` staying 1; real dispatched touch taps through smash; Results SHARE RUN via stubbed Web Share carries the PNG + deep link, CHALLENGE A FRIEND falls back to clipboard; link round-trips through `CC.Share.decode`; DEV button lazy-loads the dev chunk. `check-economy` GREEN.
+- v2 feel pass (headless, real touch taps, D08 with hazards forced on): single tap on a frozen crate cracks without damage, second tap ≤0.45 s shatters + hits, a 0.7 s second tap does not; an unstable piece left alone detonates at fuse ≈2.5 s exactly once and comes back stable; golden pieces seat ×3; fever reaches ×3 on a clean streak; conveyor cadence measured ramping 0.32 → 0.21 s; `dock_clear` carries the feel props; 0 page errors. Bot (D01/D02, no hazards) unchanged and GREEN.
 - Real mouse/X11 input: tap + hold smash, drag, flick, drop-on-lane and tap-a-lane all land; input recovers from a lost `pointerup`.
 - GUI playthrough (recorded): D01 smash → sort (12/12, 0 misses) → truck FULL → results → Upgrade Bay → Hub shows D01 cleared.
 - Later docks verified clearable at base stats: D13/2 lanes, D21/3 lanes, D36/4 lanes, D45/4 lanes, D50/5 lanes (~34–44 s).
