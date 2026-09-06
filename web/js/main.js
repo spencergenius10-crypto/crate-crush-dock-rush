@@ -77,24 +77,30 @@ CC.Game = class {
   }
 
   frame(t) {
+    // schedule first so a thrown error can never kill the loop
+    requestAnimationFrame((tt) => this.frame(tt));
     let dt = (t - this.last) / 1000; this.last = t;
     if (dt > 0.1) dt = 0.1;
     this.time += dt;
-    if (this.rvOverlay) this.rvOverlay.update(dt);
-    else if (this.fx.hitStop > 0) { this.fx.hitStop -= dt; }
-    else if (this.current && this.current.update) this.current.update(dt);
-    this.fx.update(dt);
-    if (this.bot) this.bot.update(dt);
+    try {
+      if (this.rvOverlay) this.rvOverlay.update(dt);
+      else if (this.fx.hitStop > 0) { this.fx.hitStop -= dt; }
+      else if (this.current && this.current.update) this.current.update(dt);
+      this.fx.update(dt);
+      if (this.bot) this.bot.update(dt);
 
-    const ctx = this.ctx;
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    if (this.fx.shake > 0) ctx.translate(CC.U.rand(-this.fx.shake, this.fx.shake), CC.U.rand(-this.fx.shake, this.fx.shake));
-    if (this.current && this.current.draw) this.current.draw(ctx);
-    if (!(this.current && this.current.drawsFX)) this.fx.draw(ctx);
-    if (this.rvOverlay) this.rvOverlay.draw(ctx);
-    ctx.restore();
-    requestAnimationFrame((tt) => this.frame(tt));
+      const ctx = this.ctx;
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      if (this.fx.shake > 0) ctx.translate(CC.U.rand(-this.fx.shake, this.fx.shake), CC.U.rand(-this.fx.shake, this.fx.shake));
+      if (this.current && this.current.draw) this.current.draw(ctx);
+      if (!(this.current && this.current.drawsFX)) this.fx.draw(ctx);
+      if (this.rvOverlay) this.rvOverlay.draw(ctx);
+      ctx.restore();
+    } catch (err) {
+      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      if (this.lastErr !== String(err)) { this.lastErr = String(err); console.error('[CC_FRAME]', err); }
+    }
   }
 };
 

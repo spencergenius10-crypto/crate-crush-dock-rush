@@ -75,7 +75,7 @@ CC.OverlayRevive = class {
     CC.UI.panel(ctx, 40, 360, 460, 410, { stroke: C.Fail });
     CC.U.text(ctx, this.reason === 'timer' ? 'TIME UP!' : 'SPILLED!', W / 2, 410, { size: 44, weight: 900, color: C.Fail, stroke: C.Outline, strokeWidth: 8 });
     CC.U.text(ctx, 'continue sorting?', W / 2, 452, { size: 18, weight: 700, color: C.Text_Secondary });
-    CC.U.text(ctx, `${run.progressPct()}% loaded · ${run.sort.remaining()} cargo left`, W / 2, 486, { size: 15, weight: 800 });
+    CC.U.text(ctx, `${run.progressPct()}% loaded · ${run.cargoTotal - run.stats.sorted} cargo left`, W / 2, 486, { size: 15, weight: 800 });
     for (const b of this.buttons) b.draw(ctx);
     if (this.msg) CC.U.text(ctx, this.msg, W / 2, 758, { size: 13, weight: 800, color: C.Warn });
     ctx.restore();

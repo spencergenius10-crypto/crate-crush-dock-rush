@@ -18,6 +18,12 @@ CC.Input = class {
     canvas.addEventListener('pointerup', (e) => this._up(e), opts);
     canvas.addEventListener('pointercancel', (e) => this._up(e), opts);
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    // Robustness: a release that lands off-canvas (or a lost capture) must never leave `down` stuck,
+    // otherwise every later press would be swallowed. Window-level up/cancel + blur end the press.
+    window.addEventListener('pointerup', (e) => { if (this.down) this._up(e, true); }, opts);
+    window.addEventListener('pointercancel', (e) => { if (this.down) this._up(e, true); }, opts);
+    window.addEventListener('blur', () => { if (this.down) this._end(this.x, this.y); });
+    this.lastEvent = 'none';
   }
 
   toLogical(e) {
@@ -50,9 +56,32 @@ CC.Input = class {
     this._end(x1, y1, true);
   }
 
-  _down(e) { e.preventDefault(); if (this.down) return; this.pointerId = e.pointerId; try { this.canvas.setPointerCapture(e.pointerId); } catch (_) {} const p = this.toLogical(e); this._begin(p.x, p.y); }
-  _move(e) { if (!this.down || (this.pointerId !== null && e.pointerId !== this.pointerId)) return; e.preventDefault(); const p = this.toLogical(e); this._track(p.x, p.y); }
-  _up(e) { if (!this.down || (this.pointerId !== null && e.pointerId !== this.pointerId)) return; e.preventDefault(); const p = this.toLogical(e); this.pointerId = null; this._end(p.x, p.y); }
+  _down(e) {
+    e.preventDefault();
+    this.lastEvent = 'down';
+    // a new press while we still think we're down = we missed the release; end the old press first
+    if (this.down) this._end(this.x, this.y);
+    this.pointerId = e.pointerId;
+    try { this.canvas.setPointerCapture(e.pointerId); } catch (_) {}
+    const p = this.toLogical(e);
+    this._begin(p.x, p.y);
+  }
+  _move(e) {
+    if (!this.down || (this.pointerId !== null && e.pointerId !== this.pointerId)) return;
+    e.preventDefault();
+    const p = this.toLogical(e);
+    // button already released (release event never reached us) → treat as up
+    if (e.pointerType === 'mouse' && e.buttons === 0) { this.pointerId = null; this._end(p.x, p.y); return; }
+    this._track(p.x, p.y);
+  }
+  _up(e, fromWindow) {
+    if (!this.down || (this.pointerId !== null && e.pointerId !== this.pointerId)) return;
+    if (!fromWindow) e.preventDefault();
+    this.lastEvent = fromWindow ? 'up(window)' : 'up';
+    const p = this.toLogical(e);
+    this.pointerId = null;
+    this._end(p.x, p.y);
+  }
 
   _begin(x, y) {
     this.down = true;

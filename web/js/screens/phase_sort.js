@@ -3,7 +3,7 @@
 window.CC = window.CC || {};
 
 CC.PhaseSort = class {
-  constructor(run) { this.run = run; this.g = run.g; this.highlightLane = null; this.active = null; this.spilled = []; this.seatAnims = []; }
+  constructor(run) { this.run = run; this.g = run.g; this.highlightLane = null; this.active = null; this.queue = []; this.spilled = []; this.seatAnims = []; this.paused = false; this.pendingFail = null; }
 
   enter() {
     const p = this.g.p;
@@ -44,6 +44,13 @@ CC.PhaseSort = class {
     a.state = 'fly'; this.grabbed = false; this.highlightLane = null;
     this.g.audio.whoosh();
   }
+  dropAt(px) {
+    // drop where the finger is, not where the lagging cargo sprite is
+    const a = this.active; if (!a || a.state === 'fly') return;
+    a.x = CC.U.clamp(px, CC.CONFIG.WALL_L + 4, CC.CONFIG.WALL_R - 4);
+    if (a.y > CC.CONFIG.LANES.y - 40) a.y = CC.CONFIG.LANES.y - 40;
+    this.fling(0, 380);
+  }
   flingToLane(idx, noisy) {
     const a = this.active; if (!a || a.state === 'fly') return false;
     const l = this.run.lanes[idx]; if (!l) return false;
@@ -73,7 +80,7 @@ CC.PhaseSort = class {
         else { a.state = 'wait'; this.grabbed = false; this.highlightLane = null; a.sq = { x: 1.2, y: 0.8 }; } // tap on cargo = little hop, stays put
         return;
       }
-      if (lane) { this.fling(0, 380); return; } // dragged onto a lane mouth → drop straight in
+      if (lane) { this.dropAt(e.x); return; } // released over a lane → drop straight into the lane under the finger
       this.fling(e.vx, e.vy);
     }
   }
@@ -189,7 +196,7 @@ CC.PhaseSort = class {
       }
       case 'wait': {
         // conveyor clock only runs while some lane can take this piece (swap lanes never make a dock unwinnable)
-        if (run.lanes.some((l) => run.laneAccepts(l, a.type))) a.waitT += dt;
+        if (!this.g.freezeTimer && run.lanes.some((l) => run.laneAccepts(l, a.type))) a.waitT += dt;
         a.y = CC.CONFIG.CONVEYOR_Y + Math.sin(this.t * 5) * 3;
         if (a.waitT > this.run.lv.sortWait) this.timeoutSpill(a);
         break;
@@ -199,8 +206,8 @@ CC.PhaseSort = class {
         a.x += (inp.x - a.x) * Math.min(1, dt * 20);
         a.y += (inp.y - 30 - a.y) * Math.min(1, dt * 20);
         if (this.t % 0.06 < dt) this.g.fx.trail(a.x, a.y + 10, CC.U.desat(a.type.color, 0.3));
-        // dragged straight into a lane mouth counts as a drop
-        if (a.y >= L.y - 6) { this.fling(0, 300); }
+        // finger deep inside a lane = drop into the lane under the finger (robust even if the release is never seen)
+        if (inp.y >= L.y + 24 && run.laneAt(inp.x)) this.dropAt(inp.x);
         break;
       }
       case 'fly': {

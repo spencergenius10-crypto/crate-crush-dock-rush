@@ -96,7 +96,7 @@ CC.DockRunScreen = class {
     this.stats.spills = 0;
     this.timer = Math.max(this.timer, 0) + CC.CONFIG.REVIVE_TIME_BONUS_S;
     this.overlay = null;
-    this.sort.resume();
+    if (this.phaseName === 'sort') this.sort.resume(); // timer fail during Smash just resumes smashing
     this.g.fx.floatText(CC.CONFIG.W / 2, 560, 'REVIVED!', CC.CONFIG.COLORS.Safe, 34, { punch: 1 });
     if (CC.dev) CC.dev.refresh();
   }
@@ -140,7 +140,7 @@ CC.DockRunScreen = class {
     for (const l of this.lanes) l.flashT = Math.max(0, l.flashT - dt);
     if (this.overlay) { this.overlay.update(dt); return; }
     this.elapsed += dt;
-    if (this.phaseName === 'smash' || this.phaseName === 'sort') {
+    if ((this.phaseName === 'smash' || this.phaseName === 'sort') && !this.g.freezeTimer) {
       this.timer -= dt;
       if (this.timer <= 0) { this.timer = 0; this.softFail('timer'); return; }
     }

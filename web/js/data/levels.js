@@ -19,7 +19,7 @@ CC.getLevel = function (n) {
   const crates = CC.U.clamp(6 + Math.floor((n - 1) / 3), 6, 12);
   const cargoPerCrate = 2;
   const metalPct = n >= 13 ? CC.U.clamp(0.15 + (n - 13) * 0.02, 0.15, 0.6) : 0;
-  const timer = n <= 12 ? 60 : Math.round((8 + crates * cargoPerCrate * 1.55) * (n >= 36 ? 0.92 : 1));
+  const timer = n <= 5 ? 90 : n <= 12 ? 60 : Math.round((8 + crates * cargoPerCrate * 1.55) * (n >= 36 ? 0.92 : 1));
 
   return {
     n, id, band: band.id, bandLabel: band.label,
@@ -30,7 +30,8 @@ CC.getLevel = function (n) {
     metalPct,
     timer,
     spillsAllowed: CC.CONFIG.SPILLS_ALLOWED,
-    sortWait: n <= 5 ? 5.0 : CC.CONFIG.SORT_WAIT_S, // conveyor window before cargo rolls off (FTUE is forgiving)
+    // conveyor window before cargo rolls off: none on the first two docks (learn the lanes), forgiving through FTUE
+    sortWait: n <= 2 ? Infinity : n <= 5 ? 5.0 : CC.CONFIG.SORT_WAIT_S,
     baseCoins: band.base,
     expectedCoins: band.expected,
     timerPressure: n >= 13,
